@@ -1,4 +1,4 @@
-package no.ssb.data.catalog.server;
+package no.ssb.data.note.server;
 
 import io.grpc.stub.StreamObserver;
 import no.ssb.data.note.api.*;
