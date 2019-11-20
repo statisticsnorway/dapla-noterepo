@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "no.ssb.data.note.api";
+
+service NoteService {
+    rpc list(ListNoteRequest) returns (ListNoteResponse);
+    rpc generateInput(Note) returns (Paragraph)
+}
+
+message ListNoteRequest {
+    NameSpace ns = 1;
+    uint32 count = 2;
+    uint32 offset = 3;
+}
+
+message ListNoteResponse {
+    NameSpace ns = 1;
+    uint32 count = 2;
+    uint32 offset = 3;
+    repeated Note notes = 4;
+}
+
+message NameSpace {
+    repeated string namespace = 1;
+}
+
+message NoteIdentifier {
+    string uuid = 1;
+    NameSpace namespace = 2;
+    string name = 3;
+    uint64 timestamp = 4;
+}
+
+message Note {
+    NoteIdentifier identifier = 1;
+    repeated NamedDataset input = 2;
+    repeated NamedDataset output = 3;
+    repeated Paragraph paragraphs = 4;
+}
+
+message NamedDataset {
+    string name = 1;
+    string uri = 2;
+}
+
+message Paragraph {
+    string code = 1;
+}
