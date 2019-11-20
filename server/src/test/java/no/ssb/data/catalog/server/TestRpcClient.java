@@ -5,15 +5,15 @@ import io.micronaut.context.annotation.Bean;
 import io.micronaut.context.annotation.Factory;
 import io.micronaut.grpc.annotation.GrpcChannel;
 import io.micronaut.grpc.server.GrpcServerChannel;
+import no.ssb.data.note.api.NoteServiceGrpc;
 
-import static no.ssb.data.catalog.api.DatasetCatalogServiceGrpc.DatasetCatalogServiceBlockingStub;
-import static no.ssb.data.catalog.api.DatasetCatalogServiceGrpc.newBlockingStub;
+import static no.ssb.data.note.api.NoteServiceGrpc.newBlockingStub;
 
 @Factory
 public class TestRpcClient {
 
     @Bean
-    public DatasetCatalogServiceBlockingStub blockingStub(
+    public NoteServiceGrpc.NoteServiceBlockingStub blockingStub(
             @GrpcChannel(GrpcServerChannel.NAME) ManagedChannel channel
     ) {
         return newBlockingStub(channel);

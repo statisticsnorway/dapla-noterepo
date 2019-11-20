@@ -5,7 +5,7 @@ option java_package = "no.ssb.data.note.api";
 
 service NoteService {
     rpc list(ListNoteRequest) returns (ListNoteResponse);
-    rpc generateInput(Note) returns (Paragraph)
+    rpc generateInput(Note) returns (Paragraph);
 }
 
 message ListNoteRequest {
