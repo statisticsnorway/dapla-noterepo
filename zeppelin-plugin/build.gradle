@@ -34,8 +34,9 @@ dependencies {
     api group: 'io.grpc', name: 'grpc-netty-shaded', version: '1.19.0'
     implementation group: 'org.apache.zeppelin', name: 'zeppelin-zengine', version: '0.8.2'
 
+    testAnnotationProcessor platform("io.micronaut:micronaut-bom:$micronautVersion")
+    testAnnotationProcessor "io.micronaut:micronaut-inject-java"
     testImplementation platform("io.micronaut:micronaut-bom:$micronautVersion")
-    testImplementation "javax.annotation:javax.annotation-api"
     testImplementation "org.junit.jupiter:junit-jupiter-api"
     testImplementation "io.micronaut.test:micronaut-test-junit5"
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
@@ -68,6 +69,7 @@ shadowJar {
 test {
     useJUnitPlatform()
 }
+
 tasks.withType(JavaCompile){
     options.encoding = "UTF-8"
     options.compilerArgs.add('-parameters')

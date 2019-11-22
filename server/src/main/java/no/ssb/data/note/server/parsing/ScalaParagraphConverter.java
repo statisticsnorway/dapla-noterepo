@@ -78,10 +78,10 @@ public class ScalaParagraphConverter implements ParagraphConverter {
                 if (!hasNext) {
                     throw new NoSuchElementException();
                 }
-                String inputName = matcher.group("outputName");
+                String outputName = matcher.group("outputName");
                 String namespace = matcher.group("namespace");
                 hasNext = matcher.find();
-                return NamedDataset.newBuilder().setName(inputName).setUri(namespace)
+                return NamedDataset.newBuilder().setName(outputName).setUri(namespace)
                         .build();
             }
         };
