@@ -6,7 +6,6 @@ import io.grpc.stub.StreamObserver;
 import no.ssb.data.note.api.*;
 
 import javax.inject.Singleton;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
@@ -17,13 +16,6 @@ import java.util.regex.Pattern;
 public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
 
     private static Map<String, Note> noteRepo = new ConcurrentHashMap<>();
-
-    private static Note createNote(String name, List<NamedDataset> input, List<NamedDataset> output) {
-        return Note.newBuilder()
-                .addAllInput(input)
-                .addAllOutput(output)
-                .build();
-    }
 
     @Override
     public void parseOutput(Paragraph request, StreamObserver<NamedDataset> responseObserver) {
