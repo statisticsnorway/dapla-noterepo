@@ -1,4 +1,5 @@
 # Dapla note repository
+[![Build Status](https://drone.prod-bip-ci.ssb.no/api/badges/statisticsnorway/dapla-noterepo/status.svg)](https://drone.prod-bip-ci.ssb.no/statisticsnorway/dapla-noterepo)
 
 Dapla is a micro-service part of the [dapla]() architecture. The repository is used by notebook systems as a backend.
 
