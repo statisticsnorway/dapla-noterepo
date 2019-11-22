@@ -46,7 +46,7 @@ dependencies {
 
 test.classpath += configurations.developmentOnly
 
-mainClassName = "server.Application"
+mainClassName = "no.ssb.data.note.server.Application"
 
 ext {
     protocVersion="3.5.1"
