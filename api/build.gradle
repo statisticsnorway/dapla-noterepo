@@ -1,11 +1,23 @@
 plugins {
-    id "java"
+    id "java-library"
+    id "maven-publish"
     id "com.google.protobuf" version "0.8.5"
     id "net.ltgt.apt-eclipse" version "0.21"
 }
 
 version "0.1"
 group "api"
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = 'no.ssb.data.note.api'
+            artifactId = 'note-api'
+            version = '0.1'
+            from components.java
+        }
+    }
+}
 
 repositories {
     mavenCentral()
@@ -21,7 +33,10 @@ dependencies {
 
     implementation platform("io.micronaut:micronaut-bom:$micronautVersion")
     implementation "javax.annotation:javax.annotation-api"
-    implementation "io.micronaut.grpc:micronaut-grpc-runtime"
+
+    // Transitive dependencies
+    api 'io.grpc:grpc-stub:1.19.0'
+    api 'io.grpc:grpc-protobuf:1.19.0'
 
     testImplementation "org.junit.jupiter:junit-jupiter-api"
     testImplementation "io.micronaut.test:micronaut-test-junit5"
@@ -35,11 +50,19 @@ ext {
     grpcVersion="1.18.0"
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
 sourceSets {
     main {
         java {
             srcDirs 'build/generated/source/proto/main/grpc'
             srcDirs 'build/generated/source/proto/main/java'
+        }
+        proto {
+            srcDir 'src/main/proto'
         }
     }
 }

@@ -4,11 +4,34 @@ option java_multiple_files = true;
 option java_package = "no.ssb.data.note.api";
 
 service NoteService {
-    rpc list(ListNoteRequest) returns (ListNoteResponse);
-    rpc generateInput(Note) returns (Paragraph);
-    rpc generateOutput(Note) returns (Paragraph);
-    rpc parseInput(Paragraph) returns (string);
-    rpc parseOutput(Paragraph) returns (string);
+    rpc list (ListNoteRequest) returns (ListNoteResponse);
+    rpc get (GetNoteRequest) returns (GetNoteResponse);
+    rpc save (SaveNoteRequest) returns (SaveNoteResponse);
+    rpc delete (DeleteNoteRequest) returns (DeleteNoteResponse);
+    rpc move (MoveNoteRequest) returns (MoveNoteResponse);
+
+    rpc generateInput (stream NamedDataset) returns (Paragraph);
+    rpc generateOutput (stream NamedDataset) returns (Paragraph);
+    rpc parseInput (Paragraph) returns (stream NamedDataset);
+    rpc parseOutput (Paragraph) returns (stream NamedDataset);
+}
+
+message MoveNoteRequest {
+    NameSpace nsFrom = 1;
+    NameSpace nrTo = 2;
+    string name = 3;
+}
+
+message MoveNoteResponse {
+
+}
+
+message DeleteNoteRequest {
+    NoteIdentifier identifier = 1;
+}
+
+message DeleteNoteResponse {
+
 }
 
 message ListNoteRequest {
@@ -22,6 +45,21 @@ message ListNoteResponse {
     uint32 count = 2;
     uint32 offset = 3;
     repeated Note notes = 4;
+}
+
+message GetNoteRequest {
+    NoteIdentifier identifier = 1;
+}
+
+message GetNoteResponse {
+    Note note = 1;
+}
+
+message SaveNoteRequest {
+    Note note = 1;
+}
+
+message SaveNoteResponse {
 }
 
 message NameSpace {
@@ -40,6 +78,12 @@ message Note {
     repeated NamedDataset input = 2;
     repeated NamedDataset output = 3;
     repeated Paragraph paragraphs = 4;
+
+    /*
+     * We need serialized forms to facilitate integration with
+     * GUIs.
+     */
+    map<string, string> serializedNote = 5;
 }
 
 message NamedDataset {
