@@ -58,7 +58,9 @@ sourceSets {
 
 // Minimizing an shadow JAR
 shadowJar {
-    minimize()
+    // TODO: Improve the shadow jar size.
+    // Minimize does not work so well with grpc.
+    //minimize()
     relocate 'com.google.protobuf', 'no.ssb.dapla.note.zeppelin.com.google.protobuf'
 }
 
