@@ -1,0 +1,72 @@
+plugins {
+    id "java-library"
+    id "maven-publish"
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
+}
+
+version "0.1"
+group "zeppelin-plugin"
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = 'no.ssb.dapla.note.zeppelin'
+            artifactId = 'zeppelin-plugin'
+            version = '0.1'
+            from components.java
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url "https://jcenter.bintray.com" }
+}
+
+configurations {
+    // for dependencies that are needed for development only
+    developmentOnly 
+}
+
+dependencies {
+
+    api project(':api')
+    api group: 'io.grpc', name: 'grpc-netty-shaded', version: '1.19.0'
+    implementation group: 'org.apache.zeppelin', name: 'zeppelin-zengine', version: '0.8.2'
+
+    testImplementation platform("io.micronaut:micronaut-bom:$micronautVersion")
+    testImplementation "javax.annotation:javax.annotation-api"
+    testImplementation "org.junit.jupiter:junit-jupiter-api"
+    testImplementation "io.micronaut.test:micronaut-test-junit5"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
+}
+
+test.classpath += configurations.developmentOnly
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs 'src/main/java'
+        }
+    }
+}
+
+// Minimizing an shadow JAR
+shadowJar {
+    minimize()
+    relocate 'com.google.protobuf', 'no.ssb.dapla.note.zeppelin.com.google.protobuf'
+}
+
+// use JUnit 5 platform
+test {
+    useJUnitPlatform()
+}
+tasks.withType(JavaCompile){
+    options.encoding = "UTF-8"
+    options.compilerArgs.add('-parameters')
+}
