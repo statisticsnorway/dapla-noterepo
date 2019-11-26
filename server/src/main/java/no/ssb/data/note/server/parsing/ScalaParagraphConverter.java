@@ -3,12 +3,14 @@ package no.ssb.data.note.server.parsing;
 import no.ssb.data.note.api.NamedDataset;
 import no.ssb.data.note.api.Paragraph;
 
+import javax.inject.Singleton;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Singleton
 public class ScalaParagraphConverter implements ParagraphConverter {
 
     private static Pattern INPUT_PATTERN = Pattern.compile("val\\s+(?<inputName>\\w\\w*)\\s+=\\s+spark\\s*\\.read\\s*" +

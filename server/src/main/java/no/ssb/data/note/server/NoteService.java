@@ -11,8 +11,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 //@Slf4j
 @Singleton
@@ -26,14 +24,13 @@ public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
         this.converters = converters;
     }
 
-
     @Override
     public void parseOutput(Paragraph request, StreamObserver<NamedDataset> responseObserver) {
 //        log.debug("parsing output");
         try {
             for (ParagraphConverter converter : converters) {
                 if (converter.canHandle(request)) {
-                        Iterator<NamedDataset> iterator = converter.parseOutput(request);
+                    Iterator<NamedDataset> iterator = converter.parseOutput(request);
                     while (iterator.hasNext()) {
                         NamedDataset output = iterator.next();
                         responseObserver.onNext(output);
