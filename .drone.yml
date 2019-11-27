@@ -11,21 +11,21 @@ steps:
         from_secret: maven_servers
 
   - name: build
-    image: gradle:jdk11
+    image: gradle:5.5-jdk11
     commands:
       - gradle build -x test
     depends_on:
       - authenticate
 
   - name: test
-    image: gradle:jdk11
+    image: gradle:5.5-jdk11
     commands:
       - gradle build
     depends_on:
       - build
 
 #  - name: sonarqube
-#    image: gradle:jdk11
+#    image: gradle:5.5-jdk11
 #    commands:
 #      - mvn -X -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_PROJECTKEY sonar:sonar -P ssb-bip,coverage -Dmaven.javadoc.skip=true --batch-mode --global-settings settings.xml
 #    environment:
