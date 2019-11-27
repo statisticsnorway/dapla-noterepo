@@ -17,14 +17,14 @@ repositories {
 
 configurations {
     // for dependencies that are needed for development only
-    developmentOnly 
+    developmentOnly
 }
 
 dependencies {
     compile project(':api')
 
-//    compileOnly 'org.projectlombok:lombok:1.16.20'
-//    annotationProcessor "org.projectlombok:lombok:1.16.20"
+    compileOnly 'org.projectlombok:lombok:1.18.10'
+    annotationProcessor "org.projectlombok:lombok:1.18.10"
 
     annotationProcessor platform("io.micronaut:micronaut-bom:$micronautVersion")
     annotationProcessor "io.micronaut:micronaut-inject-java"
@@ -50,8 +50,8 @@ test.classpath += configurations.developmentOnly
 mainClassName = "no.ssb.data.note.server.Application"
 
 ext {
-    protocVersion="3.5.1"
-    grpcVersion="1.18.0"
+    protocVersion = "3.5.1"
+    grpcVersion = "1.18.0"
 }
 
 sourceSets {
@@ -76,7 +76,7 @@ protobuf {
 test {
     useJUnitPlatform()
 }
-tasks.withType(JavaCompile){
+tasks.withType(JavaCompile) {
     options.encoding = "UTF-8"
     options.compilerArgs.add('-parameters')
 }

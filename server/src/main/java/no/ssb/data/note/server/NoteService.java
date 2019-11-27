@@ -3,6 +3,7 @@ package no.ssb.data.note.server;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
 import no.ssb.data.note.api.*;
 import no.ssb.data.note.server.parsing.ParagraphConverter;
 
@@ -12,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-//@Slf4j
+@Slf4j
 @Singleton
 public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
 
@@ -26,7 +27,7 @@ public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
 
     @Override
     public void parseOutput(Paragraph request, StreamObserver<NamedDataset> responseObserver) {
-//        log.debug("parsing output");
+        log.debug("parsing output");
         try {
             for (ParagraphConverter converter : converters) {
                 if (converter.canHandle(request)) {
@@ -45,7 +46,7 @@ public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
 
     @Override
     public void parseInput(Paragraph request, StreamObserver<NamedDataset> responseObserver) {
-//        log.debug("parsing input");
+        log.debug("parsing input");
         try {
             for (ParagraphConverter converter : converters) {
                 if (converter.canHandle(request)) {
@@ -64,7 +65,7 @@ public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
 
     @Override
     public void save(SaveNoteRequest request, StreamObserver<SaveNoteResponse> responseObserver) {
-//        log.debug("saving dataset");
+        log.debug("saving dataset");
         try {
             Note note = request.getNote();
             noteRepo.put(note.getIdentifier().getUuid(), note);
@@ -77,7 +78,7 @@ public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
 
     @Override
     public void get(GetNoteRequest request, StreamObserver<GetNoteResponse> responseObserver) {
-//        log.debug("get dataset");
+        log.debug("get dataset");
         try {
             Note note = noteRepo.get(request.getIdentifier().getUuid());
             if (note != null) {
@@ -91,7 +92,7 @@ public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
 
     @Override
     public void list(ListNoteRequest request, StreamObserver<ListNoteResponse> responseObserver) {
-//        log.debug("list dataset");
+        log.debug("list dataset");
         try {
             ListNoteResponse response = ListNoteResponse.newBuilder()
                     .addAllNotes(noteRepo.values())
