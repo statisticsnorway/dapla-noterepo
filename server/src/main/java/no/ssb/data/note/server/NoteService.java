@@ -7,7 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import no.ssb.data.note.api.*;
 import no.ssb.data.note.server.parsing.ParagraphConverter;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.sql.DataSource;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +18,9 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @Singleton
 public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
+
+    @Inject
+    DataSource dataSource;
 
     private static Map<String, Note> noteRepo = new ConcurrentHashMap<>();
 

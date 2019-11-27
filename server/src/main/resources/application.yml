@@ -2,6 +2,16 @@ micronaut:
   application:
     name: server
 
+datasources:
+  default:
+    url: 'jdbc:postgresql://localhost:5432/'
+    username: 'postgres'
+    password: 'mysecretpassword'
+    driverClassName: 'org.postgresql.Driver'
+flyway:
+  datasources:
+    default:
+      locations: classpath:dbmigrations
 grpc:
   server:
     keep-alive-time: 3h
