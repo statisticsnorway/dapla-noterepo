@@ -1,4 +1,4 @@
-package no.ssb.data.note.server;
+package no.ssb.dapla.note.server;
 
 import io.micronaut.runtime.Micronaut;
 

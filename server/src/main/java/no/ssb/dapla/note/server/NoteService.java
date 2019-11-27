@@ -1,11 +1,11 @@
-package no.ssb.data.note.server;
+package no.ssb.dapla.note.server;
 
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
+import no.ssb.dapla.note.server.parsing.ParagraphConverter;
 import no.ssb.data.note.api.*;
-import no.ssb.data.note.server.parsing.ParagraphConverter;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;

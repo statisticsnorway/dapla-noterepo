@@ -3,7 +3,7 @@ package no.ssb.dapla.note.zeppelin;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import no.ssb.data.note.api.*;
+import no.ssb.dapla.note.api.*;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.notebook.Note;
 import org.apache.zeppelin.notebook.NoteInfo;
@@ -100,9 +100,9 @@ public class SsbNotebookRepo implements NotebookRepo {
     public List<NoteInfo> list(AuthenticationInfo subject) throws IOException {
         try {
             ListNoteResponse noteResponse = noteClient.list(ListNoteRequest.newBuilder().build());
-            List<no.ssb.data.note.api.Note> grpcNotes = noteResponse.getNotesList();
+            List<no.ssb.dapla.note.api.Note> grpcNotes = noteResponse.getNotesList();
             List<NoteInfo> result = new ArrayList<>(noteResponse.getCount());
-            for (no.ssb.data.note.api.Note grpcNote : grpcNotes) {
+            for (no.ssb.dapla.note.api.Note grpcNote : grpcNotes) {
                 if (grpcNote.containsSerializedNote(ZEPPELIN_NAME)) {
                     Note note = Note.fromJson(grpcNote.getSerializedNoteOrThrow(ZEPPELIN_NAME));
                     if (!note.getId().equals(grpcNote.getIdentifier().getUuid())) {
@@ -134,16 +134,16 @@ public class SsbNotebookRepo implements NotebookRepo {
             NoteIdentifier identifier = extractNoteIdentifier(note, name, namespace);
 
             // Convert paragraphs.
-            no.ssb.data.note.api.Note.Builder noteBuilder = no.ssb.data.note.api.Note.newBuilder()
+            no.ssb.dapla.note.api.Note.Builder noteBuilder = no.ssb.dapla.note.api.Note.newBuilder()
                     .setIdentifier(identifier);
 
             for (Paragraph paragraph : note.getParagraphs()) {
 
-                no.ssb.data.note.api.Paragraph.Builder grpcParagraphBuilder = no.ssb.data.note.api.Paragraph.newBuilder();
+                no.ssb.dapla.note.api.Paragraph.Builder grpcParagraphBuilder = no.ssb.dapla.note.api.Paragraph.newBuilder();
                 if (paragraph.getText() != null) {
                     grpcParagraphBuilder.setCode(paragraph.getText());
                 }
-                no.ssb.data.note.api.Paragraph grpcParagraph = grpcParagraphBuilder.build();
+                no.ssb.dapla.note.api.Paragraph grpcParagraph = grpcParagraphBuilder.build();
                 noteBuilder.addParagraphs(grpcParagraph);
 
                 // Ask service to parse the paragraphs.

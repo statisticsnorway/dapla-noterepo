@@ -56,20 +56,11 @@ dependencies {
 
 test.classpath += configurations.developmentOnly
 
-mainClassName = "no.ssb.data.note.server.Application"
+mainClassName = "no.ssb.dapla.note.server.Application"
 
 ext {
     protocVersion = "3.5.1"
     grpcVersion = "1.18.0"
-}
-
-sourceSets {
-    main {
-        java {
-            srcDirs 'build/generated/source/proto/main/grpc'
-            srcDirs 'build/generated/source/proto/main/java'
-        }
-    }
 }
 
 protobuf {

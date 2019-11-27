@@ -11,7 +11,7 @@ group "api"
 publishing {
     publications {
         maven(MavenPublication) {
-            groupId = 'no.ssb.data.note.api'
+            groupId = 'no.ssb.dapla.note.api'
             artifactId = 'note-api'
             version = '0.1'
             from components.java
@@ -62,7 +62,7 @@ sourceSets {
             srcDirs 'build/generated/source/proto/main/java'
         }
         proto {
-            srcDir 'src/main/proto'
+            srcDirs 'src/main/proto'
         }
     }
 }

@@ -1,7 +1,7 @@
-package no.ssb.data.note.server.parsing;
+package no.ssb.dapla.note.server.parsing;
 
-import no.ssb.data.note.api.NamedDataset;
-import no.ssb.data.note.api.Paragraph;
+import no.ssb.dapla.note.api.NamedDataset;
+import no.ssb.dapla.note.api.Paragraph;
 
 import javax.inject.Singleton;
 import java.util.Iterator;
