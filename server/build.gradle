@@ -1,5 +1,4 @@
 plugins {
-    id "com.google.protobuf" version "0.8.5"
     id "net.ltgt.apt-eclipse" version "0.21"
     id "com.github.johnrengelman.shadow" version "5.0.0"
     id "application"
@@ -58,20 +57,6 @@ test.classpath += configurations.developmentOnly
 
 mainClassName = "no.ssb.dapla.note.server.Application"
 
-ext {
-    protocVersion = "3.5.1"
-    grpcVersion = "1.18.0"
-}
-
-protobuf {
-    protoc { artifact = "com.google.protobuf:protoc:${protocVersion}" }
-    plugins {
-        grpc { artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}" }
-    }
-    generateProtoTasks {
-        all()*.plugins { grpc {} }
-    }
-}
 // use JUnit 5 platform
 test {
     useJUnitPlatform()
