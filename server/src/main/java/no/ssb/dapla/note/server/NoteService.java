@@ -4,27 +4,22 @@ import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
+import no.ssb.dapla.note.api.*;
 import no.ssb.dapla.note.server.parsing.ParagraphConverter;
-import no.ssb.data.note.api.*;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.sql.DataSource;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Singleton
 public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
 
-    @Inject
-    DataSource dataSource;
-
-    private static Map<String, Note> noteRepo = new ConcurrentHashMap<>();
-
     private final List<ParagraphConverter> converters;
+
+    @Inject
+    private NoteRepository noteRepo;
 
     public NoteService(List<ParagraphConverter> converters) {
         this.converters = converters;
@@ -73,7 +68,7 @@ public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
         log.debug("saving dataset");
         try {
             Note note = request.getNote();
-            noteRepo.put(note.getIdentifier().getUuid(), note);
+            noteRepo.saveNote(note.getIdentifier().getUuid(), note);
             responseObserver.onNext(SaveNoteResponse.newBuilder().build());
             responseObserver.onCompleted();
         } catch (Exception ex) {
@@ -85,7 +80,7 @@ public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
     public void get(GetNoteRequest request, StreamObserver<GetNoteResponse> responseObserver) {
         log.debug("get dataset");
         try {
-            Note note = noteRepo.get(request.getIdentifier().getUuid());
+            Note note = noteRepo.getNote(request.getIdentifier().getUuid());
             if (note != null) {
                 responseObserver.onNext(GetNoteResponse.newBuilder().setNote(note).build());
             }
@@ -99,10 +94,18 @@ public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
     public void list(ListNoteRequest request, StreamObserver<ListNoteResponse> responseObserver) {
         log.debug("list dataset");
         try {
+
+            // Normalize namespace.
+            List<String> namespace = request.hasNs()
+                    ? request.getNs().getNamespaceList()
+                    : List.of();
+
+            List<Note> notes = noteRepo.listNotes(namespace, request.getCount(), request.getOffset());
+
             ListNoteResponse response = ListNoteResponse.newBuilder()
-                    .addAllNotes(noteRepo.values())
-                    .setCount(noteRepo.size())
-                    .setOffset(0)
+                    .addAllNotes(notes)
+                    .setCount(notes.size())
+                    .setOffset(request.getOffset() + notes.size())
                     .build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
