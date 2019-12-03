@@ -31,15 +31,17 @@ dependencies {
     annotationProcessor "io.micronaut:micronaut-inject-java"
     annotationProcessor "io.micronaut:micronaut-validation"
 
-    runtime 'io.micronaut.configuration:micronaut-jdbc-hikari'
-    runtime 'org.postgresql:postgresql:42.2.8'
-
     implementation platform("io.micronaut:micronaut-bom:$micronautVersion")
     implementation "io.micronaut.grpc:micronaut-grpc-runtime"
     implementation "io.micronaut:micronaut-inject"
     implementation "io.micronaut:micronaut-validation"
     implementation "io.micronaut:micronaut-runtime"
     implementation "javax.annotation:javax.annotation-api"
+
+    // TODO: Move to postgres implementation
+    compile 'io.micronaut.configuration:micronaut-jooq'
+    runtime 'io.micronaut.configuration:micronaut-jdbc-hikari'
+    runtime 'org.postgresql:postgresql:42.2.8'
 
     runtimeOnly "ch.qos.logback:logback-classic:1.2.3"
 

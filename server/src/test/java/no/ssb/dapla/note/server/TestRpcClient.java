@@ -5,9 +5,9 @@ import io.micronaut.context.annotation.Bean;
 import io.micronaut.context.annotation.Factory;
 import io.micronaut.grpc.annotation.GrpcChannel;
 import io.micronaut.grpc.server.GrpcServerChannel;
-import no.ssb.data.note.api.NoteServiceGrpc;
+import no.ssb.dapla.note.api.NoteServiceGrpc;
 
-import static no.ssb.data.note.api.NoteServiceGrpc.newBlockingStub;
+import static no.ssb.dapla.note.api.NoteServiceGrpc.newBlockingStub;
 
 @Factory
 public class TestRpcClient {

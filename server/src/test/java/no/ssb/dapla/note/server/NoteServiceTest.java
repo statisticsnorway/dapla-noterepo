@@ -1,9 +1,9 @@
 package no.ssb.dapla.note.server;
 
 import io.micronaut.test.annotation.MicronautTest;
-import no.ssb.data.note.api.ListNoteRequest;
-import no.ssb.data.note.api.ListNoteResponse;
-import no.ssb.data.note.api.NoteServiceGrpc;
+import no.ssb.dapla.note.api.ListNoteRequest;
+import no.ssb.dapla.note.api.ListNoteResponse;
+import no.ssb.dapla.note.api.NoteServiceGrpc;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
