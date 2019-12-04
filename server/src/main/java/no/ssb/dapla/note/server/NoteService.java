@@ -26,14 +26,14 @@ public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
     }
 
     @Override
-    public void parseOutput(Paragraph request, StreamObserver<NamedDataset> responseObserver) {
+    public void parseOutput(Paragraph request, StreamObserver<Dataset> responseObserver) {
         log.debug("parsing output");
         try {
             for (ParagraphConverter converter : converters) {
                 if (converter.canHandle(request)) {
-                    Iterator<NamedDataset> iterator = converter.parseOutput(request);
+                    Iterator<Dataset> iterator = converter.parseOutput(request);
                     while (iterator.hasNext()) {
-                        NamedDataset output = iterator.next();
+                        Dataset output = iterator.next();
                         responseObserver.onNext(output);
                     }
                 }
@@ -45,14 +45,14 @@ public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
     }
 
     @Override
-    public void parseInput(Paragraph request, StreamObserver<NamedDataset> responseObserver) {
+    public void parseInput(Paragraph request, StreamObserver<Dataset> responseObserver) {
         log.debug("parsing input");
         try {
             for (ParagraphConverter converter : converters) {
                 if (converter.canHandle(request)) {
-                    Iterator<NamedDataset> iterator = converter.parseInput(request);
+                    Iterator<Dataset> iterator = converter.parseInput(request);
                     while (iterator.hasNext()) {
-                        NamedDataset input = iterator.next();
+                        Dataset input = iterator.next();
                         responseObserver.onNext(input);
                     }
                 }
@@ -80,7 +80,7 @@ public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
     public void get(GetNoteRequest request, StreamObserver<GetNoteResponse> responseObserver) {
         log.debug("get dataset");
         try {
-            Note note = noteRepo.getNote(request.getIdentifier().getUuid());
+            Note note = noteRepo.getNote(request.getUuid());
             if (note != null) {
                 responseObserver.onNext(GetNoteResponse.newBuilder().setNote(note).build());
             }
@@ -95,11 +95,7 @@ public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
         log.debug("list dataset");
         try {
 
-            // Normalize namespace.
-            List<String> namespace = request.hasNs()
-                    ? request.getNs().getNamespaceList()
-                    : List.of();
-
+            List<String> namespace = request.getNamespaceList();
             List<Note> notes = noteRepo.listNotes(namespace, request.getCount(), request.getOffset());
 
             ListNoteResponse response = ListNoteResponse.newBuilder()

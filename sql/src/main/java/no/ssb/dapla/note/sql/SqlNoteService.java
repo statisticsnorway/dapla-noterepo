@@ -1,8 +1,7 @@
 package no.ssb.dapla.note.sql;
 
 import lombok.extern.slf4j.Slf4j;
-import no.ssb.dapla.note.api.NamedDataset;
-import no.ssb.dapla.note.api.NoteIdentifier;
+import no.ssb.dapla.note.api.Dataset;
 import no.ssb.dapla.note.server.NoteRepository;
 
 import javax.inject.Inject;
@@ -27,11 +26,9 @@ public class SqlNoteService implements NoteRepository {
     @Override
     public void saveNote(no.ssb.dapla.note.api.Note note) throws NoteRepositoryException {
 
-        NoteIdentifier identifier = note.getIdentifier();
-
         // So we validate that it is indeed a UUID.
-        UUID uuid = UUID.fromString(identifier.getUuid());
-        String pathString = String.join("/", identifier.getNamespace().getNamespaceList());
+        UUID uuid = UUID.fromString(note.getUuid());
+        String pathString = String.join("/", note.getNamespaceList());
 
         // Create the namespace if it does not exist.
         SqlNamespace existingPath = nsRepository.findByPath(pathString).orElseGet(() -> {
@@ -43,7 +40,7 @@ public class SqlNoteService implements NoteRepository {
         // Check if note exists.
         SqlNote existingNote = noteRepository.findById(uuid).orElseGet(() -> {
             SqlNote newNote = new SqlNote();
-            newNote.setName(note.getIdentifier().getName());
+            newNote.setName(note.getName());
             newNote.setNamespace(existingPath);
             newNote.setId(uuid);
             return noteRepository.save(newNote);
@@ -56,7 +53,7 @@ public class SqlNoteService implements NoteRepository {
         }
 
         List<SqlNoteDataset> inputs = new ArrayList<>();
-        for (NamedDataset input : note.getInputList()) {
+        for (Dataset input : note.getInputsList()) {
             SqlNoteDataset dataset = new SqlNoteDataset();
             dataset.setName(input.getName());
             //dataset.setSourceNote(existingNote);
@@ -65,7 +62,7 @@ public class SqlNoteService implements NoteRepository {
         existingNote.setInputs(inputs);
 
         List<SqlNoteDataset> outputs = new ArrayList<>();
-        for (NamedDataset output : note.getOutputList()) {
+        for (Dataset output : note.getOutputsList()) {
             SqlNoteDataset dataset = new SqlNoteDataset();
             dataset.setName(output.getName());
             //dataset.setSourceNote(existingNote);

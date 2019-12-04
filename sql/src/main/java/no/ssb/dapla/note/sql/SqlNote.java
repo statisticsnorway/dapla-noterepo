@@ -3,9 +3,7 @@ package no.ssb.dapla.note.sql;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import no.ssb.dapla.note.api.NameSpace;
 import no.ssb.dapla.note.api.Note;
-import no.ssb.dapla.note.api.NoteIdentifier;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
@@ -38,13 +36,10 @@ public class SqlNote {
 
     @Transient
     public Note toGrpc() {
-        return Note.newBuilder().setIdentifier(
-                NoteIdentifier.newBuilder()
-                        .setNamespace(
-                                NameSpace.newBuilder().addAllNamespace(getNamespace().getPaths())
-                        )
-                        .setName(getName())
+        return Note.newBuilder()
                 .setUuid(getId().toString())
-        ).build();
+                .setName(getName())
+                .addAllNamespace(getNamespace().getPaths())
+                .build();
     }
 }

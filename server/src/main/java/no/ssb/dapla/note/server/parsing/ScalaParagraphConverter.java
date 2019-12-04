@@ -1,6 +1,6 @@
 package no.ssb.dapla.note.server.parsing;
 
-import no.ssb.dapla.note.api.NamedDataset;
+import no.ssb.dapla.note.api.Dataset;
 import no.ssb.dapla.note.api.Paragraph;
 
 import javax.inject.Singleton;
@@ -28,17 +28,17 @@ public class ScalaParagraphConverter implements ParagraphConverter {
     }
 
     @Override
-    public Optional<Paragraph> generateInput(Iterable<NamedDataset> input) {
+    public Optional<Paragraph> generateInput(Iterable<Dataset> input) {
         return Optional.empty();
     }
 
     @Override
-    public Optional<Paragraph> generateOutput(Iterable<NamedDataset> output) {
+    public Optional<Paragraph> generateOutput(Iterable<Dataset> output) {
         return Optional.empty();
     }
 
     @Override
-    public Iterator<NamedDataset> parseInput(Paragraph paragraph) {
+    public Iterator<Dataset> parseInput(Paragraph paragraph) {
         Matcher matcher = INPUT_PATTERN.matcher(paragraph.getCode());
         return new Iterator<>() {
 
@@ -50,21 +50,21 @@ public class ScalaParagraphConverter implements ParagraphConverter {
             }
 
             @Override
-            public NamedDataset next() {
+            public Dataset next() {
                 if (!hasNext) {
                     throw new NoSuchElementException();
                 }
                 String inputName = matcher.group("inputName");
                 String namespace = matcher.group("namespace");
                 hasNext = matcher.find();
-                return NamedDataset.newBuilder().setName(inputName).setUri(namespace)
+                return Dataset.newBuilder().setName(inputName).setUri(namespace)
                         .build();
             }
         };
     }
 
     @Override
-    public Iterator<NamedDataset> parseOutput(Paragraph paragraph) {
+    public Iterator<Dataset> parseOutput(Paragraph paragraph) {
         Matcher matcher = OUTPUT_PATTERN.matcher(paragraph.getCode());
         return new Iterator<>() {
 
@@ -76,14 +76,14 @@ public class ScalaParagraphConverter implements ParagraphConverter {
             }
 
             @Override
-            public NamedDataset next() {
+            public Dataset next() {
                 if (!hasNext) {
                     throw new NoSuchElementException();
                 }
                 String outputName = matcher.group("outputName");
                 String namespace = matcher.group("namespace");
                 hasNext = matcher.find();
-                return NamedDataset.newBuilder().setName(outputName).setUri(namespace)
+                return Dataset.newBuilder().setName(outputName).setUri(namespace)
                         .build();
             }
         };

@@ -1,6 +1,6 @@
 package no.ssb.dapla.note.server.parsing;
 
-import no.ssb.dapla.note.api.NamedDataset;
+import no.ssb.dapla.note.api.Dataset;
 import no.ssb.dapla.note.api.Paragraph;
 import org.junit.jupiter.api.Test;
 
@@ -26,10 +26,10 @@ class ScalaParagraphConverterTest {
 
         for (String input : inputs) {
             Paragraph paragraph = Paragraph.newBuilder().setCode(input).build();
-            assertThat(converter.parseInput(paragraph)).extracting(NamedDataset::getName)
+            assertThat(converter.parseInput(paragraph)).extracting(Dataset::getName)
                     .containsExactly("someInput");
 
-            assertThat(converter.parseInput(paragraph)).extracting(NamedDataset::getUri)
+            assertThat(converter.parseInput(paragraph)).extracting(Dataset::getUri)
                     .containsExactly("someUri");
         }
     }
@@ -46,10 +46,10 @@ class ScalaParagraphConverterTest {
 
         for (String input : outputs) {
             Paragraph paragraph = Paragraph.newBuilder().setCode(input).build();
-            assertThat(converter.parseOutput(paragraph)).extracting(NamedDataset::getName)
+            assertThat(converter.parseOutput(paragraph)).extracting(Dataset::getName)
                     .containsExactly("someOutputVariable");
 
-            assertThat(converter.parseOutput(paragraph)).extracting(NamedDataset::getUri)
+            assertThat(converter.parseOutput(paragraph)).extracting(Dataset::getUri)
                     .containsExactly("someUri");
         }
     }

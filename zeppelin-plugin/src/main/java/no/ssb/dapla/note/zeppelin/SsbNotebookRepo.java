@@ -89,18 +89,12 @@ public class SsbNotebookRepo implements NotebookRepo {
      * <p>
      * Path is relative and '/' separated.
      */
-    static NameSpace extractNamespace(Note note) {
-        List<String> path = Arrays.asList(note.getFolderId().split("/"));
-        return NameSpace.newBuilder().addAllNamespace(path).build();
+    static List<String> extractNamespace(Note note) {
+         return Arrays.asList(note.getFolderId().split("/"));
     }
 
-    private static NoteIdentifier extractNoteIdentifier(Note note, String name, NameSpace namespace) {
-        return NoteIdentifier.newBuilder()
-                .setUuid(UUID_GENERATOR.generate(note.getId()).toString())
-                .setName(name)
-                .setTimestamp(Instant.now().getMillis())
-                .setNamespace(namespace)
-                .build();
+    private static UUID extractUUID(Note note) {
+        return UUID_GENERATOR.generate(note.getId());
     }
 
     public List<NoteInfo> list(AuthenticationInfo subject) throws IOException {
@@ -111,7 +105,7 @@ public class SsbNotebookRepo implements NotebookRepo {
             for (no.ssb.dapla.note.api.Note grpcNote : grpcNotes) {
                 if (grpcNote.containsSerializedNote(ZEPPELIN_NAME)) {
                     Note note = Note.fromJson(grpcNote.getSerializedNoteOrThrow(ZEPPELIN_NAME));
-                    if (!note.getId().equals(grpcNote.getIdentifier().getUuid())) {
+                    if (!note.getId().equals(grpcNote.getUuid())) {
                         throw new IOException("parsed note id differs from saved note id");
                     }
                     result.add(new NoteInfo(note));
@@ -125,8 +119,7 @@ public class SsbNotebookRepo implements NotebookRepo {
 
     public Note get(String noteId, AuthenticationInfo subject) throws IOException {
         try {
-            GetNoteResponse response = noteClient.get(GetNoteRequest.newBuilder().setIdentifier(NoteIdentifier.newBuilder()
-                    .setUuid(noteId)).build());
+            GetNoteResponse response = noteClient.get(GetNoteRequest.newBuilder().setUuid(noteId).build());
             return Note.fromJson(response.getNote().getSerializedNoteOrThrow(ZEPPELIN_NAME));
         } catch (Exception ex) {
             throw new IOException(ex);
@@ -135,13 +128,16 @@ public class SsbNotebookRepo implements NotebookRepo {
 
     public void save(Note note, AuthenticationInfo subject) throws IOException {
         try {
-            String name = extractName(note);
-            NameSpace namespace = extractNamespace(note);
-            NoteIdentifier identifier = extractNoteIdentifier(note, name, namespace);
 
             // Convert paragraphs.
             no.ssb.dapla.note.api.Note.Builder noteBuilder = no.ssb.dapla.note.api.Note.newBuilder()
-                    .setIdentifier(identifier);
+
+                    .setUuid(extractUUID(note).toString())
+                    .addAliasIdentifiers(note.getId())
+
+                    .setName(extractName(note))
+                    .addAllNamespace(extractNamespace(note));
+
 
             for (Paragraph paragraph : note.getParagraphs()) {
 
@@ -155,23 +151,23 @@ public class SsbNotebookRepo implements NotebookRepo {
                 noteBuilder.addParagraphs(grpcParagraph);
 
                 // Ask service to parse the paragraphs.
-                Iterator<NamedDataset> inputs = noteClient.parseInput(grpcParagraph);
-                if (inputs.hasNext() && !noteBuilder.getInputList().isEmpty()) {
+                Iterator<Dataset> inputs = noteClient.parseInput(grpcParagraph);
+                if (inputs.hasNext() && !noteBuilder.getInputsList().isEmpty()) {
                     LOG.warn("the dataset {} has more than one paragraph with inputs (paragraph {})", note.getId(),
                             paragraph.getId());
                 }
                 while (inputs.hasNext()) {
-                    noteBuilder.addInput(inputs.next());
+                    noteBuilder.addInputs(inputs.next());
                 }
 
                 // Ask service to parse the paragraphs.
-                Iterator<NamedDataset> outputs = noteClient.parseOutput(grpcParagraph);
-                if (inputs.hasNext() && !noteBuilder.getOutputList().isEmpty()) {
+                Iterator<Dataset> outputs = noteClient.parseOutput(grpcParagraph);
+                if (inputs.hasNext() && !noteBuilder.getOutputsList().isEmpty()) {
                     LOG.warn("the dataset {} has more than one paragraph with outputs (paragraph {})", note.getId(),
                             paragraph.getId());
                 }
                 while (outputs.hasNext()) {
-                    noteBuilder.addOutput(outputs.next());
+                    noteBuilder.addOutputs(outputs.next());
                 }
             }
 
@@ -185,7 +181,7 @@ public class SsbNotebookRepo implements NotebookRepo {
 
     public void remove(String noteId, AuthenticationInfo subject) throws IOException {
         try {
-            noteClient.delete(DeleteNoteRequest.newBuilder().setIdentifier(NoteIdentifier.newBuilder().setUuid(noteId)).build());
+            noteClient.delete(DeleteNoteRequest.newBuilder().setUuid(noteId).build());
         } catch (Exception ex) {
             throw new IOException(ex);
         }

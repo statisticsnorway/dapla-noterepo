@@ -1,6 +1,6 @@
 package no.ssb.dapla.note.server.parsing;
 
-import no.ssb.dapla.note.api.NamedDataset;
+import no.ssb.dapla.note.api.Dataset;
 import no.ssb.dapla.note.api.Paragraph;
 
 import java.util.Iterator;
@@ -19,25 +19,25 @@ public interface ParagraphConverter {
     /**
      * Try to generate a paragraph for the inputs
      */
-    Optional<Paragraph> generateInput(Iterable<NamedDataset> input);
+    Optional<Paragraph> generateInput(Iterable<Dataset> input);
 
     /**
      * Try to generate a paragraph for the outputs
      */
-    Optional<Paragraph> generateOutput(Iterable<NamedDataset> output);
+    Optional<Paragraph> generateOutput(Iterable<Dataset> output);
 
     /**
      * Parse the inputs from a paragraph.
      *
      * @return an iterator over the parsed inputs
      */
-    Iterator<NamedDataset> parseInput(Paragraph paragraph);
+    Iterator<Dataset> parseInput(Paragraph paragraph);
 
     /**
      * Parse the outputs from a paragraph.
      *
      * @return an iterator over the parsed outputs
      */
-    Iterator<NamedDataset> parseOutput(Paragraph paragraph);
+    Iterator<Dataset> parseOutput(Paragraph paragraph);
 
 }
