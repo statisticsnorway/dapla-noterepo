@@ -1,6 +1,8 @@
 package no.ssb.dapla.note.zeppelin;
 
 
+import com.fasterxml.uuid.Generators;
+import com.fasterxml.uuid.impl.NameBasedGenerator;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import no.ssb.dapla.note.api.*;
@@ -19,6 +21,10 @@ import java.io.IOException;
 import java.util.*;
 
 public class SsbNotebookRepo implements NotebookRepo {
+
+    private static final NameBasedGenerator UUID_GENERATOR = Generators.nameBasedGenerator(
+            UUID.fromString("c0e783e7-db6d-4de4-81bf-27b2f2f02805")
+    );
 
     private static final Logger LOG = LoggerFactory.getLogger(SsbNotebookRepo.class);
 
@@ -90,7 +96,7 @@ public class SsbNotebookRepo implements NotebookRepo {
 
     private static NoteIdentifier extractNoteIdentifier(Note note, String name, NameSpace namespace) {
         return NoteIdentifier.newBuilder()
-                .setUuid(note.getId())
+                .setUuid(UUID_GENERATOR.generate(note.getId()).toString())
                 .setName(name)
                 .setTimestamp(Instant.now().getMillis())
                 .setNamespace(namespace)
@@ -138,6 +144,8 @@ public class SsbNotebookRepo implements NotebookRepo {
                     .setIdentifier(identifier);
 
             for (Paragraph paragraph : note.getParagraphs()) {
+
+                paragraph.getResult().add("test");
 
                 no.ssb.dapla.note.api.Paragraph.Builder grpcParagraphBuilder = no.ssb.dapla.note.api.Paragraph.newBuilder();
                 if (paragraph.getText() != null) {

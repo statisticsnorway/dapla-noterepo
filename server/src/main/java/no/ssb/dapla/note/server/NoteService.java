@@ -68,7 +68,7 @@ public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
         log.debug("saving dataset");
         try {
             Note note = request.getNote();
-            noteRepo.saveNote(note.getIdentifier().getUuid(), note);
+            noteRepo.saveNote(note);
             responseObserver.onNext(SaveNoteResponse.newBuilder().build());
             responseObserver.onCompleted();
         } catch (Exception ex) {

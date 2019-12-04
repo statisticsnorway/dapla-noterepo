@@ -32,6 +32,8 @@ dependencies {
 
     api project(':api')
     api group: 'io.grpc', name: 'grpc-netty-shaded', version: '1.19.0'
+    api group: 'com.fasterxml.uuid', name: 'java-uuid-generator', version: '3.2.0'
+
     implementation group: 'org.apache.zeppelin', name: 'zeppelin-zengine', version: '0.8.2'
 
     testAnnotationProcessor platform("io.micronaut:micronaut-bom:$micronautVersion")

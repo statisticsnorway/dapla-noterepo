@@ -68,9 +68,10 @@ message NameSpace {
 
 message NoteIdentifier {
     string uuid = 1;
-    NameSpace namespace = 2;
-    string name = 3;
-    uint64 timestamp = 4;
+    string originalId = 2;
+    NameSpace namespace = 3;
+    string name = 4;
+    uint64 timestamp = 5;
 }
 
 message Note {

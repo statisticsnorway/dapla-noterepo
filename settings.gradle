@@ -1,4 +1,4 @@
 include 'api'
 include 'server'
-include 'postgres-db'
+include 'sql'
 include 'zeppelin-plugin'
