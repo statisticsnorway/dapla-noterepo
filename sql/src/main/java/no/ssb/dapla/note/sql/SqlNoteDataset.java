@@ -3,6 +3,8 @@ package no.ssb.dapla.note.sql;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import no.ssb.dapla.note.api.Dataset;
+import no.ssb.dapla.note.api.Note;
 
 import javax.persistence.*;
 import java.util.List;
@@ -24,6 +26,15 @@ public class SqlNoteDataset {
     @ManyToOne
     private SqlNote sourceNote;
 
-    //@ManyToMany
-    //private List<SqlNote> targetNotes;
+    @ManyToMany
+    private List<SqlNote> targetNotes;
+
+    @Transient
+    public Dataset toGrpc() {
+        return Dataset.newBuilder()
+                .setUuid(getId().toString())
+                .setName(getName())
+                .setUri("todo")
+                .build();
+    }
 }

@@ -2,10 +2,12 @@ package no.ssb.dapla.note.sql;
 
 import lombok.extern.slf4j.Slf4j;
 import no.ssb.dapla.note.api.Dataset;
+import no.ssb.dapla.note.api.Note;
 import no.ssb.dapla.note.server.NoteRepository;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -23,8 +25,11 @@ public class SqlNoteService implements NoteRepository {
     @Inject
     private SqlNamespaceRepository nsRepository;
 
+    @Inject
+    private SqlDatasetRepository datasetRepository;
+
     @Override
-    public void saveNote(no.ssb.dapla.note.api.Note note) throws NoteRepositoryException {
+    public void saveNote(Note note) throws NoteRepositoryException {
 
         // So we validate that it is indeed a UUID.
         UUID uuid = UUID.fromString(note.getUuid());
@@ -57,7 +62,7 @@ public class SqlNoteService implements NoteRepository {
             SqlNoteDataset dataset = new SqlNoteDataset();
             dataset.setName(input.getName());
             //dataset.setSourceNote(existingNote);
-            inputs.add(dataset);
+            inputs.add(datasetRepository.save(dataset));
         }
         existingNote.setInputs(inputs);
 
@@ -68,11 +73,12 @@ public class SqlNoteService implements NoteRepository {
             //dataset.setSourceNote(existingNote);
             outputs.add(dataset);
         }
-        //existingNote.setOutputs(outputs);
+       //existingNote(outputs);
 
         noteRepository.update(existingNote);
     }
 
+    @Transactional
     @Override
     public no.ssb.dapla.note.api.Note getNote(String uuid) throws NoteNotFound {
         Optional<SqlNote> note = noteRepository.findById(UUID.fromString(uuid));

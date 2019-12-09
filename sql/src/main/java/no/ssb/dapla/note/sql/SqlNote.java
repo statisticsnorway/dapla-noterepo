@@ -4,12 +4,15 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import no.ssb.dapla.note.api.Note;
+import no.ssb.dapla.note.api.NoteOrBuilder;
+import org.hibernate.annotations.Fetch;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @ToString
 @Getter
@@ -27,12 +30,12 @@ public class SqlNote {
     @ManyToOne
     private SqlNamespace namespace;
 
-    @OneToMany(targetEntity = SqlNoteDataset.class, mappedBy = "sourceNote")
+    @OneToMany(mappedBy = "sourceNote")
     private List<SqlNoteDataset> inputs = new ArrayList<>();
 //
-    //@OneToMany(targetEntity = SqlNoteDataset.class)
-    //@JoinTable
-    //private List<SqlNoteDataset> outputs = new ArrayList<>();
+    @OneToMany
+    @JoinTable
+    private List<SqlNoteDataset> outputs = new ArrayList<>();
 
     @Transient
     public Note toGrpc() {
@@ -40,6 +43,7 @@ public class SqlNote {
                 .setUuid(getId().toString())
                 .setName(getName())
                 .addAllNamespace(getNamespace().getPaths())
+                .addAllInputs(getInputs().stream().map(SqlNoteDataset::toGrpc).collect(Collectors.toList()))
                 .build();
     }
 }
