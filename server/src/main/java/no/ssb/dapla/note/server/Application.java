@@ -1,10 +1,8 @@
 package no.ssb.dapla.note.server;
 
-import io.micronaut.runtime.Micronaut;
-
 public class Application {
 
     public static void main(String[] args) {
-        Micronaut.run(Application.class);
+        throw new UnsupportedOperationException();
     }
 }
