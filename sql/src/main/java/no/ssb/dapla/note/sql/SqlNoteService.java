@@ -1,11 +1,13 @@
 package no.ssb.dapla.note.sql;
 
+import io.micronaut.context.annotation.Requires;
 import lombok.extern.slf4j.Slf4j;
 import no.ssb.dapla.note.api.Dataset;
 import no.ssb.dapla.note.api.Note;
 import no.ssb.dapla.note.server.NoteRepository;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.transaction.Transactional;
 import java.util.ArrayList;
@@ -17,6 +19,8 @@ import java.util.stream.StreamSupport;
 
 @Slf4j
 @Singleton
+@Named("sql")
+@Requires(property="backend", value="sql")
 public class SqlNoteService implements NoteRepository {
 
     @Inject
@@ -81,8 +85,14 @@ public class SqlNoteService implements NoteRepository {
     @Transactional
     @Override
     public no.ssb.dapla.note.api.Note getNote(String uuid) throws NoteNotFound {
-        Optional<SqlNote> note = noteRepository.findById(UUID.fromString(uuid));
-        return note.map(SqlNote::toGrpc).orElseThrow(NoteNotFound::new);
+        UUID noteUUID = UUID.fromString(uuid);
+        Optional<SqlNote> note = noteRepository.findById(noteUUID);
+        return note.map(SqlNote::toGrpc).orElseThrow(() -> new NoteNotFound(noteUUID));
+    }
+
+    @Override
+    public Note getNoteByOriginalId(String original) throws NoteRepositoryException, NoteNotFound {
+        throw new UnsupportedOperationException();
     }
 
     @Override

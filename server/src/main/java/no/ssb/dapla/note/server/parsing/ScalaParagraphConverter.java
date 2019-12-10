@@ -40,7 +40,7 @@ public class ScalaParagraphConverter implements ParagraphConverter {
     @Override
     public Iterator<Dataset> parseInput(Paragraph paragraph) {
         Matcher matcher = INPUT_PATTERN.matcher(paragraph.getCode());
-        return new Iterator<>() {
+        return new Iterator<Dataset>() {
 
             boolean hasNext = matcher.find();
 
@@ -66,7 +66,7 @@ public class ScalaParagraphConverter implements ParagraphConverter {
     @Override
     public Iterator<Dataset> parseOutput(Paragraph paragraph) {
         Matcher matcher = OUTPUT_PATTERN.matcher(paragraph.getCode());
-        return new Iterator<>() {
+        return new Iterator<Dataset>() {
 
             boolean hasNext = matcher.find();
 

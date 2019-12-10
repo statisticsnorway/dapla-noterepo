@@ -7,18 +7,19 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import no.ssb.dapla.note.api.*;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
+import org.apache.zeppelin.interpreter.InterpreterResult;
 import org.apache.zeppelin.notebook.Note;
 import org.apache.zeppelin.notebook.NoteInfo;
 import org.apache.zeppelin.notebook.Paragraph;
 import org.apache.zeppelin.notebook.repo.NotebookRepo;
 import org.apache.zeppelin.notebook.repo.NotebookRepoSettingsInfo;
 import org.apache.zeppelin.user.AuthenticationInfo;
-import org.joda.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class SsbNotebookRepo implements NotebookRepo {
 
@@ -90,7 +91,7 @@ public class SsbNotebookRepo implements NotebookRepo {
      * Path is relative and '/' separated.
      */
     static List<String> extractNamespace(Note note) {
-         return Arrays.asList(note.getFolderId().split("/"));
+        return Arrays.asList(note.getFolderId().split("/"));
     }
 
     private static UUID extractUUID(Note note) {
@@ -105,9 +106,6 @@ public class SsbNotebookRepo implements NotebookRepo {
             for (no.ssb.dapla.note.api.Note grpcNote : grpcNotes) {
                 if (grpcNote.containsSerializedNote(ZEPPELIN_NAME)) {
                     Note note = Note.fromJson(grpcNote.getSerializedNoteOrThrow(ZEPPELIN_NAME));
-                    if (!note.getId().equals(grpcNote.getUuid())) {
-                        throw new IOException("parsed note id differs from saved note id");
-                    }
                     result.add(new NoteInfo(note));
                 }
             }
@@ -119,7 +117,8 @@ public class SsbNotebookRepo implements NotebookRepo {
 
     public Note get(String noteId, AuthenticationInfo subject) throws IOException {
         try {
-            GetNoteResponse response = noteClient.get(GetNoteRequest.newBuilder().setUuid(noteId).build());
+            // Note that we use the original note id.
+            GetNoteResponse response = noteClient.get(GetNoteRequest.newBuilder().setOriginalId(noteId).build());
             return Note.fromJson(response.getNote().getSerializedNoteOrThrow(ZEPPELIN_NAME));
         } catch (Exception ex) {
             throw new IOException(ex);
@@ -141,34 +140,51 @@ public class SsbNotebookRepo implements NotebookRepo {
 
             for (Paragraph paragraph : note.getParagraphs()) {
 
-                paragraph.getResult().add("test");
+                try {
+                    no.ssb.dapla.note.api.Paragraph.Builder grpcParagraphBuilder = no.ssb.dapla.note.api.Paragraph.newBuilder();
+                    if (paragraph.getText() != null) {
+                        grpcParagraphBuilder.setCode(paragraph.getText());
+                    }
+                    no.ssb.dapla.note.api.Paragraph grpcParagraph = grpcParagraphBuilder.build();
+                    noteBuilder.addParagraphs(grpcParagraph);
 
-                no.ssb.dapla.note.api.Paragraph.Builder grpcParagraphBuilder = no.ssb.dapla.note.api.Paragraph.newBuilder();
-                if (paragraph.getText() != null) {
-                    grpcParagraphBuilder.setCode(paragraph.getText());
-                }
-                no.ssb.dapla.note.api.Paragraph grpcParagraph = grpcParagraphBuilder.build();
-                noteBuilder.addParagraphs(grpcParagraph);
+                    // Ask service to parse the paragraphs.
+                    Iterator<Dataset> inputs = noteClient.parseInput(grpcParagraph);
+                    if (inputs.hasNext() && !noteBuilder.getInputsList().isEmpty()) {
+                        LOG.warn("the dataset {} has more than one paragraph with inputs (paragraph {})", note.getId(),
+                                paragraph.getId());
+                    }
+                    while (inputs.hasNext()) {
+                        noteBuilder.addInputs(inputs.next());
+                    }
 
-                // Ask service to parse the paragraphs.
-                Iterator<Dataset> inputs = noteClient.parseInput(grpcParagraph);
-                if (inputs.hasNext() && !noteBuilder.getInputsList().isEmpty()) {
-                    LOG.warn("the dataset {} has more than one paragraph with inputs (paragraph {})", note.getId(),
-                            paragraph.getId());
-                }
-                while (inputs.hasNext()) {
-                    noteBuilder.addInputs(inputs.next());
+                    // Ask service to parse the paragraphs.
+                    Iterator<Dataset> outputs = noteClient.parseOutput(grpcParagraph);
+                    if (inputs.hasNext() && !noteBuilder.getOutputsList().isEmpty()) {
+                        LOG.warn("the dataset {} has more than one paragraph with outputs (paragraph {})", note.getId(),
+                                paragraph.getId());
+                    }
+
+                    while (outputs.hasNext()) {
+                        Dataset next = outputs.next();
+                        noteBuilder.addOutputs(next);
+                    }
+
+
+                    if (paragraph.getResult().code() != InterpreterResult.Code.ERROR) {
+                        String foundInputText = noteBuilder.getInputsList().stream()
+                                .map(dataset -> "Name: " + dataset.getName() + ", " + dataset.getUri())
+                                .collect(Collectors.joining("\n", "Found output:", "\n"));
+                        String foundOutputText = noteBuilder.getOutputsList().stream()
+                                .map(dataset -> "Name: " + dataset.getName() + ", " + dataset.getUri())
+                                .collect(Collectors.joining("\n", "Found inputs", "\n"));
+
+                        paragraph.setReturn(new InterpreterResult(InterpreterResult.Code.SUCCESS, foundInputText + foundOutputText), null);
+                    }
+                } catch (Exception ex) {
+                    paragraph.setReturn(new InterpreterResult(InterpreterResult.Code.ERROR), ex);
                 }
 
-                // Ask service to parse the paragraphs.
-                Iterator<Dataset> outputs = noteClient.parseOutput(grpcParagraph);
-                if (inputs.hasNext() && !noteBuilder.getOutputsList().isEmpty()) {
-                    LOG.warn("the dataset {} has more than one paragraph with outputs (paragraph {})", note.getId(),
-                            paragraph.getId());
-                }
-                while (outputs.hasNext()) {
-                    noteBuilder.addOutputs(outputs.next());
-                }
             }
 
             noteBuilder.putSerializedNote(ZEPPELIN_NAME, note.toJson());

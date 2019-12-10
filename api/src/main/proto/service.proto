@@ -49,6 +49,7 @@ message ListNoteResponse {
 
 message GetNoteRequest {
     string uuid = 1;
+    string originalId = 2;
 }
 
 message GetNoteResponse {

@@ -1,6 +1,7 @@
 micronaut:
   application:
     name: server
+backend: "memory"
 flyway:
   datasources:
     default:

@@ -1,11 +1,13 @@
 package no.ssb.dapla.note.sql;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import io.micronaut.context.annotation.Requires;
 import io.micronaut.data.annotation.Join;
 import io.micronaut.data.annotation.Repository;
 import io.micronaut.data.jpa.annotation.EntityGraph;
 import io.micronaut.data.repository.CrudRepository;
 
+import javax.inject.Named;
 import javax.validation.constraints.NotNull;
 import java.util.Optional;
 import java.util.UUID;

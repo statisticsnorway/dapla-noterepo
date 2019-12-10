@@ -40,6 +40,7 @@ public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
             }
             responseObserver.onCompleted();
         } catch (Exception ex) {
+            log.warn("could not parse output", ex);
             responseObserver.onError(new StatusException(Status.fromThrowable(ex)));
         }
     }
@@ -59,6 +60,7 @@ public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
             }
             responseObserver.onCompleted();
         } catch (Exception ex) {
+            log.warn("could not parse input", ex);
             responseObserver.onError(new StatusException(Status.fromThrowable(ex)));
         }
     }
@@ -72,6 +74,7 @@ public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
             responseObserver.onNext(SaveNoteResponse.newBuilder().build());
             responseObserver.onCompleted();
         } catch (Exception ex) {
+            log.warn("could not save note", ex);
             responseObserver.onError(new StatusException(Status.fromThrowable(ex)));
         }
     }
@@ -80,12 +83,25 @@ public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
     public void get(GetNoteRequest request, StreamObserver<GetNoteResponse> responseObserver) {
         log.debug("get dataset");
         try {
-            Note note = noteRepo.getNote(request.getUuid());
-            if (note != null) {
-                responseObserver.onNext(GetNoteResponse.newBuilder().setNote(note).build());
+            if (request.getUuid().isEmpty() && request.getOriginalId().isEmpty()) {
+                throw new IllegalArgumentException("uuid or originalId must be set");
             }
-            responseObserver.onCompleted();
+            if (!request.getUuid().isEmpty()) {
+                Note note = noteRepo.getNote(request.getUuid());
+                if (note != null) {
+                    responseObserver.onNext(GetNoteResponse.newBuilder().setNote(note).build());
+                }
+                responseObserver.onCompleted();
+            }
+            if (!request.getOriginalId().isEmpty()) {
+                Note note = noteRepo.getNoteByOriginalId(request.getOriginalId());
+                if (note != null) {
+                    responseObserver.onNext(GetNoteResponse.newBuilder().setNote(note).build());
+                }
+                responseObserver.onCompleted();
+            }
         } catch (Exception ex) {
+            log.warn("could not get note", ex);
             responseObserver.onError(new StatusException(Status.fromThrowable(ex)));
         }
     }
@@ -106,6 +122,7 @@ public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
             responseObserver.onNext(response);
             responseObserver.onCompleted();
         } catch (Exception ex) {
+            log.warn("could not list notes", ex);
             responseObserver.onError(new StatusException(Status.fromThrowable(ex)));
         }
     }
