@@ -1,11 +1,8 @@
 package no.ssb.dapla.note.server.memory;
 
-import io.micronaut.context.annotation.Requires;
 import no.ssb.dapla.note.api.Note;
 import no.ssb.dapla.note.server.NoteRepository;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -14,9 +11,6 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * A simple in-memory repository.
  */
-@Singleton
-@Named("memory")
-@Requires(property = "backend", value = "memory")
 public class MemoryRepository implements NoteRepository {
 
     private ConcurrentHashMap<UUID, Note> notes = new ConcurrentHashMap<>();

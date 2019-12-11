@@ -3,26 +3,25 @@ package no.ssb.dapla.note.server;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
 import no.ssb.dapla.note.api.*;
 import no.ssb.dapla.note.server.parsing.ParagraphConverter;
+import org.slf4j.Logger;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
-@Slf4j
-@Singleton
+//@Slf4j
 public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
 
+    Logger log;
+
     private final List<ParagraphConverter> converters;
+    private final NoteRepository noteRepo;
 
-    @Inject
-    private NoteRepository noteRepo;
-
-    public NoteService(List<ParagraphConverter> converters) {
-        this.converters = converters;
+    public NoteService(List<ParagraphConverter> converters, NoteRepository noteRepo) {
+        this.converters = Objects.requireNonNull(converters);
+        this.noteRepo = Objects.requireNonNull(noteRepo);
     }
 
     @Override
