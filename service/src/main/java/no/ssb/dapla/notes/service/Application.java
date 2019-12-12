@@ -6,12 +6,13 @@ import no.ssb.dapla.notes.service.memory.MemoryRepository;
 import no.ssb.dapla.notes.service.parsing.ScalaParagraphConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
+import java.util.logging.LogManager;
 
 public class Application {
 
@@ -32,6 +33,7 @@ public class Application {
 
     public static void main(String[] args) throws InterruptedException, ExecutionException, TimeoutException {
 
+        setupLogging();
 
         NoteService noteService = new NoteService(
                 List.of(new ScalaParagraphConverter()),
@@ -45,9 +47,17 @@ public class Application {
                 .start()
                 .toCompletableFuture()
                 .get(10, TimeUnit.SECONDS);
-        System.out.println(getVersion());
         log.info("Java version {}", getVersion());
         log.info("gRPC Server started at: http://localhost:{}", grpcServer.port());
+    }
+
+    /**
+     * Disable the JUL hendler and instal the SLF4J bridge.
+     */
+    private static void setupLogging() {
+        LogManager.getLogManager().reset();
+        SLF4JBridgeHandler.removeHandlersForRootLogger();
+        SLF4JBridgeHandler.install();
     }
 
 }

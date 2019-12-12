@@ -25,10 +25,6 @@
             <artifactId>helidon-grpc-server</artifactId>
             <exclusions>
                 <exclusion>
-                    <artifactId>grpc-api</artifactId>
-                    <groupId>io.grpc</groupId>
-                </exclusion>
-                <exclusion>
                     <artifactId>grpc-core</artifactId>
                     <groupId>io.grpc</groupId>
                 </exclusion>
