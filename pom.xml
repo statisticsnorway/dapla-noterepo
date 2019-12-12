@@ -96,12 +96,9 @@
     </build>
 
     <modules>
-        <!-- TODO: Move to protobuf -->
-        <module>api</module>
-        <!-- TODO: Move to service -->
-        <module>server</module>
-        <!-- TODO: Move to zeppelin -->
-        <module>zeppelin-plugin</module>
+        <module>protobuf</module>
+        <module>service</module>
+        <module>zeppelin</module>
     </modules>
 
 </project>

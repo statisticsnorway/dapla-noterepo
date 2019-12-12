@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "no.ssb.dapla.notes.protobuf";
+
+service NoteService {
+    rpc list (ListNoteRequest) returns (ListNoteResponse);
+    rpc get (GetNoteRequest) returns (GetNoteResponse);
+    rpc save (SaveNoteRequest) returns (SaveNoteResponse);
+    rpc delete (DeleteNoteRequest) returns (DeleteNoteResponse);
+    rpc move (MoveNoteRequest) returns (MoveNoteResponse);
+
+    rpc generateInput (stream Dataset) returns (Paragraph);
+    rpc generateOutput (stream Dataset) returns (Paragraph);
+    rpc parseInput (Paragraph) returns (stream Dataset);
+    rpc parseOutput (Paragraph) returns (stream Dataset);
+}
+
+message MoveNoteRequest {
+    string uuid = 1;
+    repeated string namespace = 2;
+    string name = 3;
+}
+
+message MoveNoteResponse {
+
+}
+
+message DeleteNoteRequest {
+    string uuid = 1;
+}
+
+message DeleteNoteResponse {
+
+}
+
+message ListNoteRequest {
+    repeated string namespace = 1;
+    uint32 count = 2;
+    uint32 offset = 3;
+}
+
+message ListNoteResponse {
+    repeated string namespace = 1;
+    uint32 count = 2;
+    uint32 offset = 3;
+    repeated Note notes = 4;
+}
+
+message GetNoteRequest {
+    string uuid = 1;
+    string originalId = 2;
+}
+
+message GetNoteResponse {
+    Note note = 1;
+}
+
+message SaveNoteRequest {
+    Note note = 1;
+}
+
+message SaveNoteResponse {
+}
+
+message Note {
+    // Unique note identifier
+    string uuid = 1;
+
+    // namespace of the note
+    repeated string namespace = 2;
+
+    // name of the note
+    string name = 3;
+
+    repeated Dataset inputs = 4;
+    repeated Dataset outputs = 5;
+
+    repeated Paragraph paragraphs = 6;
+
+    // Other identifiers than be used to refer to this note.
+    repeated string aliasIdentifiers = 7;
+
+    // Serialized notes per system.
+    map<string, string> serializedNote = 8;
+}
+
+message Dataset {
+    string name = 1;
+    string uuid = 2;
+    string uri = 3;
+}
+
+message Paragraph {
+    string code = 1;
+    string language = 2;
+}
