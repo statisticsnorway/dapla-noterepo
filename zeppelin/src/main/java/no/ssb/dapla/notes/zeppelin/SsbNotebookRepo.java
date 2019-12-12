@@ -1,4 +1,4 @@
-package no.ssb.dapla.note.zeppelin;
+package no.ssb.dapla.notes.zeppelin;
 
 
 import com.fasterxml.uuid.Generators;
@@ -170,8 +170,7 @@ public class SsbNotebookRepo implements NotebookRepo {
                         noteBuilder.addOutputs(next);
                     }
 
-
-                    if (paragraph.getResult().code() != InterpreterResult.Code.ERROR) {
+                    if (paragraph.getResult() != null && paragraph.getResult().code() != InterpreterResult.Code.ERROR) {
                         String foundInputText = noteBuilder.getInputsList().stream()
                                 .map(dataset -> "Name: " + dataset.getName() + ", " + dataset.getUri())
                                 .collect(Collectors.joining("\n", "Found output:", "\n"));
