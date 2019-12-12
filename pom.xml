@@ -32,30 +32,34 @@
             </dependency>
 
             <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>jul-to-slf4j</artifactId>
+                <version>1.7.29</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>1.2.3</version>
+            </dependency>
+
+            <dependency>
                 <groupId>javax.annotation</groupId>
                 <artifactId>javax.annotation-api</artifactId>
                 <version>1.3.2</version>
             </dependency>
-            <dependency>
-                <groupId>org.projectlombok</groupId>
-                <artifactId>lombok</artifactId>
-                <version>1.18.10</version>
-            </dependency>
+
             <dependency>
                 <groupId>no.ssb.dapla.notes</groupId>
                 <artifactId>dapla-notes-api</artifactId>
                 <version>0.0.1-SNAPSHOT</version>
             </dependency>
+
             <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-netty-shaded</artifactId>
                 <version>1.25.0</version>
             </dependency>
-            <dependency>
-                <groupId>com.google.protobuf</groupId>
-                <artifactId>protobuf-java</artifactId>
-                <version>3.8.0</version>
-            </dependency>
+
             <dependency>
                 <groupId>org.apache.zeppelin</groupId>
                 <artifactId>zeppelin-zengine</artifactId>
@@ -66,11 +70,6 @@
                 <groupId>com.fasterxml.uuid</groupId>
                 <artifactId>java-uuid-generator</artifactId>
                 <version>3.2.0</version>
-            </dependency>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <version>1.7.29</version>
             </dependency>
             <dependency>
                 <groupId>org.assertj</groupId>

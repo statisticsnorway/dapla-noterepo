@@ -3,18 +3,20 @@ package no.ssb.dapla.note.server;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
+
 import no.ssb.dapla.note.api.*;
 import no.ssb.dapla.note.server.parsing.ParagraphConverter;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
-//@Slf4j
+
 public class NoteService extends NoteServiceGrpc.NoteServiceImplBase {
 
-    Logger log;
+    private static final Logger log = LoggerFactory.getLogger(NoteService.class);
 
     private final List<ParagraphConverter> converters;
     private final NoteRepository noteRepo;
