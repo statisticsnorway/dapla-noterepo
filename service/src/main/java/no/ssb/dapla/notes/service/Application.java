@@ -41,6 +41,11 @@ public class Application {
      * Disable the JUL hendler and instal the SLF4J bridge.
      */
     private static void setupLogging() {
+        // TODO: Find where the ContextInitializer comes from.
+        //String logbackConfigurationFile = System.getenv("LOGBACK_CONFIGURATION_FILE");
+        // if (logbackConfigurationFile != null) {
+        //    System.setProperty(ContextInitializer.CONFIG_FILE_PROPERTY, logbackConfigurationFile);
+        // }
         LogManager.getLogManager().reset();
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
