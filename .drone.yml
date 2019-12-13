@@ -3,69 +3,102 @@ name: default
 
 steps:
 
+  - name: restore-cache
+    image: homerovalle/drone-gcs-cache
+    settings:
+      pull: true
+      bucket: bip-drone-dependency-cache
+      json_key:
+        from_secret: gcs_credentials
+      restore: true
+
   - name: authenticate
     image: robertstettner/drone-mvn-auth
-    pull: true
+    pull: always
     settings:
       servers:
         from_secret: maven_servers
+      profiles:
+        - id: ssb-bip
+          repositories:
+            - id: ssb-bip-snapshots
+              url: https://nexus.prod-bip-ci.ssb.no/repository/maven-snapshots/
+              layout: default
+            - id: ssb-bip-releases
+              url: https://nexus.prod-bip-ci.ssb.no/repository/maven-releases/
+              layout: default
 
   - name: build
-    image: gradle:5.5-jdk11
+    image: maven:3-jdk-11-slim
     commands:
-      - gradle build -x test
+      - mvn verify -P ssb-bip -Dmaven.repo.local=/drone/src/.m2/repository --no-transfer-progress --batch-mode --global-settings settings.xml
     depends_on:
       - authenticate
+      - restore-cache
 
-  - name: test
-    image: gradle:5.5-jdk11
+  - name: sonarqube
+    image: maven:3-jdk-11
     commands:
-      - gradle build
+      - # mvn -X -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_PROJECTKEY sonar:sonar -P ssb-bip -Dmaven.repo.local=/drone/src/.m2/repository --batch-mode --global-settings settings.xml
+    environment:
+      SONAR_HOST_URL: https://sonarqube.prod-bip-ci.ssb.no
+      SONAR_PROJECTKEY:
+        from_secret: sonar_token
     depends_on:
       - build
 
-#  - name: sonarqube
-#    image: gradle:5.5-jdk11
-#    commands:
-#      - mvn -X -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_PROJECTKEY sonar:sonar -P ssb-bip,coverage -Dmaven.javadoc.skip=true --batch-mode --global-settings settings.xml
-#    environment:
-#      SONAR_HOST_URL: https://sonarqube.prod-bip-ci.ssb.no
-#      SONAR_PROJECTKEY:
-#        from_secret: sonar_token
-#      MAVEN_HOME: /drone/src/.m2
-#      M2_HOME: /drone/src/.m2
-#    depends_on:
-#      - test
+  # Rebuild cache if it has changed with this build
+  - name: rebuild-cache
+    image: homerovalle/drone-gcs-cache
+    settings:
+      pull: true
+      bucket: bip-drone-dependency-cache
+      json_key:
+        from_secret: gcs_credentials
+      rebuild: true
+      mount:
+        - .m2/repository
+    depends_on:
+      - sonarqube
 
-#  - name: publish-jar
-#    image: maven:3-jdk-8
-#    commands:
-#      - mvn clean package deploy -P ssb-bip, -DskipTests=true -Djdk.tls.client.protocols="TLSv1.2" --batch-mode --global-settings settings.xml
-#    when:
-#      ref:
-#        - refs/heads/develop
-#        - refs/tags/*
-#    environment:
-#      MAVEN_HOME: /drone/src/.m2
-#      M2_HOME: /drone/src/.m2
-#    depends_on:
-#      - sonarqube
-#      - codacy
-#      - codecov
+  # OPTIONAL: Flush the cache of old cache items (older than 14 days)
+  - name: flush-cache
+    image: homerovalle/drone-gcs-cache
+    settings:
+      pull: true
+      bucket: bip-drone-dependency-cache
+      json_key:
+        from_secret: gcs_credentials
+      flush: true
+      flush_age: 14
+    depends_on:
+      - sonarqube
 
-  - name: publish-docker-zeppelin
+  - name: dapla-notes-zeppelin
     image: plugins/gcr
     settings:
-      dockerfile: zeppelin-plugin/docker/Dockerfile
-      repo: eu.gcr.io/prod-bip/ssb/dapla-zeppelin
+      dockerfile: zeppelin/docker/Dockerfile
+      repo: eu.gcr.io/prod-bip/ssb/dapla-notes-zeppelin
       registry: eu.gcr.io
       auto_tag: true
+      tags:
+        -${DRONE_COMMIT_SHA:0:8}"
       json_key:
         from_secret: gcr_credentials
-    when:
-      ref:
-        - refs/heads/develop
-        - refs/tags/*
+    depends_on:
+      - build
+
+  - name: dapla-notes-service
+    image: plugins/gcr
+    settings:
+      dockerfile: service/Dockerfile
+      repo: eu.gcr.io/prod-bip/ssb/dapla-notes-service
+      registry: eu.gcr.io
+      auto_tag: true
+      tags:
+        -${DRONE_COMMIT_SHA:0:8}"
+      json_key:
+        from_secret: gcr_credentials
     depends_on:
       - build
 
@@ -78,9 +111,8 @@ steps:
     when:
       status: [ success, failure ]
     depends_on:
-      - build
-      - publish-docker-zeppelin
-
+      - dapla-notes-service
+      - dapla-notes-zeppelin
 ---
 kind: secret
 name: maven_servers
@@ -94,21 +126,30 @@ name: slack_webhook_url
 get:
   path: drone-slack-webhook-url
   name: slack-webhook-url
+
 ---
 kind: secret
 name: sonar_host
 get:
   path: drone-sonarqube-configuration
   name: url
+
 ---
 kind: secret
 name: sonar_token
 get:
   path: drone-sonarqube-configuration
   name: token
+
 ---
 kind: secret
 name: gcr_credentials
 get:
   path: drone-gcr-credentials
   name: gcr-credentials
+---
+kind: secret
+name: gcs_credentials
+get:
+  path: drone-gcs-credentials
+  name: gcs-credentials

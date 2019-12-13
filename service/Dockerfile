@@ -15,7 +15,7 @@
 #
 
 # 1st stage, build the app
-FROM maven:3.5.4-jdk-11 as build
+FROM maven:3-jdk-11-slim as build
 
 WORKDIR /helidon
 
@@ -26,13 +26,13 @@ ADD pom.xml .
 ADD service/pom.xml ./service/pom.xml
 ADD protobuf/pom.xml ./protobuf/pom.xml
 ADD zeppelin/pom.xml ./zeppelin/pom.xml
-RUN mvn package -DskipTests -pl service -am
+RUN mvn package -DskipTests --no-transfer-progress --batch-mode -pl service -am
 
 # Do the Maven build!
 # Incremental docker builds will resume here when you change sources
 ADD service/src     ./service/src
 ADD protobuf/src    ./protobuf/src
-RUN mvn package -DskipTests -pl service -am
+RUN mvn package -DskipTests --no-transfer-progress --batch-mode -pl service -am
 
 RUN echo "done!"
 
