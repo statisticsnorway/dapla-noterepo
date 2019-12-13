@@ -80,9 +80,9 @@ steps:
       dockerfile: zeppelin/docker/Dockerfile
       repo: eu.gcr.io/prod-bip/ssb/dapla-notes-zeppelin
       registry: eu.gcr.io
-      auto_tag: true
       tags:
-        -${DRONE_COMMIT_SHA:0:8}"
+        - latest
+        - ${DRONE_BRANCH}-${DRONE_COMMIT_SHA:0:8}
       json_key:
         from_secret: gcr_credentials
     depends_on:
@@ -94,9 +94,9 @@ steps:
       dockerfile: service/Dockerfile
       repo: eu.gcr.io/prod-bip/ssb/dapla-notes-service
       registry: eu.gcr.io
-      auto_tag: true
       tags:
-        -${DRONE_COMMIT_SHA:0:8}"
+        - latest
+        - ${DRONE_BRANCH}-${DRONE_COMMIT_SHA:0:8}
       json_key:
         from_secret: gcr_credentials
     depends_on:
