@@ -18,19 +18,6 @@ public class Application {
 
     private static final Logger log = LoggerFactory.getLogger(Application.class);
 
-    private static int getVersion() {
-        String version = System.getProperty("java.version");
-        if (version.startsWith("1.")) {
-            version = version.substring(2, 3);
-        } else {
-            int dot = version.indexOf(".");
-            if (dot != -1) {
-                version = version.substring(0, dot);
-            }
-        }
-        return Integer.parseInt(version);
-    }
-
     public static void main(String[] args) throws InterruptedException, ExecutionException, TimeoutException {
 
         setupLogging();
@@ -47,7 +34,6 @@ public class Application {
                 .start()
                 .toCompletableFuture()
                 .get(10, TimeUnit.SECONDS);
-        log.info("Java version {}", getVersion());
         log.info("gRPC Server started at: http://localhost:{}", grpcServer.port());
     }
 
