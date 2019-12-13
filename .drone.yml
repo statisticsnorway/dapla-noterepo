@@ -78,7 +78,7 @@ steps:
     image: plugins/gcr
     settings:
       dockerfile: zeppelin/docker/Dockerfile
-      repo: eu.gcr.io/prod-bip/ssb/dapla-notes-zeppelin
+      repo: eu.gcr.io/prod-bip/dapla-notes-zeppelin
       registry: eu.gcr.io
       tags:
         - latest
@@ -92,7 +92,7 @@ steps:
     image: plugins/gcr
     settings:
       dockerfile: service/Dockerfile
-      repo: eu.gcr.io/prod-bip/ssb/dapla-notes-service
+      repo: eu.gcr.io/prod-bip/dapla-notes-service
       registry: eu.gcr.io
       tags:
         - latest
