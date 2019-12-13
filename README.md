@@ -7,13 +7,23 @@ It extends the notebook system with statistics norway-specific functions such as
 
 ## Test 
 
-The service is a micronaut application and can be run with the following gradle command:
+The service is a helidon se application and can be run with the following gradle command:
 
+TODO
 ```
 ~# git clone git@github.com:statisticsnorway/dapla-noterepo.git
 ~# cd dapla-noterepo 
 ~/dapla-noterepo# gradle :server:run
 ```
+
+Docker build: 
+
+```
+
+docker build -t dapla-notes-service -f service/Dockerfile  .
+docker build -t dapla-zeppelin -f zeppelin/docker/Dockerfile  .
+```
+
 
 The zeppelin repository implementation comes with a Dockerfile. It relies on the 
 platform SSB registry so you need to authenticate with it first.

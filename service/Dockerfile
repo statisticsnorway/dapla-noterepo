@@ -15,7 +15,7 @@
 #
 
 # 1st stage, build the app
-FROM maven:3.5.4-jdk-9 as build
+FROM maven:3.5.4-jdk-11 as build
 
 WORKDIR /helidon
 
@@ -23,23 +23,27 @@ WORKDIR /helidon
 # Incremental docker builds will always resume after that, unless you update
 # the pom
 ADD pom.xml .
-RUN mvn package -DskipTests
+ADD service/pom.xml ./service/pom.xml
+ADD protobuf/pom.xml ./protobuf/pom.xml
+ADD zeppelin/pom.xml ./zeppelin/pom.xml
+RUN mvn package -DskipTests -pl service -am
 
 # Do the Maven build!
 # Incremental docker builds will resume here when you change sources
-ADD src src
-RUN mvn package -DskipTests
+ADD service/src     ./service/src
+ADD protobuf/src    ./protobuf/src
+RUN mvn package -DskipTests -pl service -am
 
 RUN echo "done!"
 
 # 2nd stage, build the runtime image
-FROM openjdk:8-jre-slim
+FROM openjdk:11-jre-slim
 WORKDIR /helidon
 
 # Copy the binary built in the 1st stage
-COPY --from=build /helidon/target/helidon-quickstart-se.jar ./
-COPY --from=build /helidon/target/libs ./libs
+COPY --from=build /helidon/service/target/dapla-notes-service.jar ./
+COPY --from=build /helidon/service/target/libs ./libs
 
-CMD ["java", "-jar", "helidon-quickstart-se.jar"]
+CMD ["java", "-jar", "dapla-notes-service.jar"]
 
 EXPOSE 8080

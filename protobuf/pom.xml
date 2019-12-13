@@ -75,7 +75,7 @@
                 <artifactId>os-maven-plugin</artifactId>
                 <version>1.6.2</version>
             </extension>
-            <!-- Used to build a multi release jar (8 for spark/zeppelin and 1 for service) -->
+            <!-- Used to build a multi release jar (8 for spark/zeppelin and 11 for service) -->
             <extension>
                 <groupId>pw.krejci</groupId>
                 <artifactId>multi-release-jar-maven-plugin</artifactId>

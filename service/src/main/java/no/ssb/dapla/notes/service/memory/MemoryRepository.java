@@ -18,7 +18,6 @@ public class MemoryRepository implements NoteRepository {
 
     private static UUID parseUUID(String uuid) throws NoteRepositoryException {
         try {
-
             return UUID.fromString(uuid);
         } catch (IllegalArgumentException iar) {
             throw new NoteRepositoryException("invalid uuid", iar);
