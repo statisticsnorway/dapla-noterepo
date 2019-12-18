@@ -77,9 +77,10 @@ public class SsbNotebookRepo implements NotebookRepo {
         log.info("Note backend: {}:{}", host, port);
         ManagedChannelBuilder<?> channelBuilder = ManagedChannelBuilder.forAddress(host, port);
         if (conf.getBoolean(CONFIG_PLAIN_ENV_NAME, CONFIG_PLAIN_NAME, CONFIG_PLAIN_DEFAULT)) {
-            log.warn("" +
-                    "You chose to use a plain (unencrypted) connection.\n" +
-                    "Make sure you understand the implications.");
+            log.warn("\n\n" +
+                    "\t\tYou chose to use a plain (unencrypted) connection.\n" +
+                    "\t\tMake sure you understand the implications." +
+                    "\n\n");
             channelBuilder.usePlaintext();
         }
         return channelBuilder;
