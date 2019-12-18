@@ -46,4 +46,4 @@ COPY --from=build /helidon/service/target/libs ./libs
 
 CMD ["java", "-jar", "dapla-notes-service.jar"]
 
-EXPOSE 8080
+EXPOSE 1408
