@@ -27,7 +27,7 @@ public class SsbNotebookRepo implements NotebookRepo {
             UUID.fromString("c0e783e7-db6d-4de4-81bf-27b2f2f02805")
     );
 
-    private static final Logger LOG = LoggerFactory.getLogger(SsbNotebookRepo.class);
+    private static final Logger log = LoggerFactory.getLogger(SsbNotebookRepo.class);
 
     private static final Boolean CONFIG_PLAIN_DEFAULT = false;
     private static final String CONFIG_PLAIN_NAME = "zeppelin.notebook.ssb.plain";
@@ -42,6 +42,11 @@ public class SsbNotebookRepo implements NotebookRepo {
     private static final String CONFIG_PORT_ENV_NAME = CONFIG_PORT_NAME.toUpperCase().replace('.', '_');
     private static final String ZEPPELIN_NAME = "zeppelin";
 
+    private static final String CONFIG_AUTH_HEADER_NAME_NAME = "zeppelin.notebook.ssb.auth.header.name";
+    private static final String CONFIG_AUTH_HEADER_NAME_ENV_NAME = CONFIG_AUTH_HEADER_NAME_NAME.toUpperCase().replace('.', '_');
+    private static final String CONFIG_AUTH_HEADER_VALUE_NAME = "zeppelin.notebook.ssb.auth.header.value";
+    private static final String CONFIG_AUTH_HEADER_VALUE_ENV_NAME = CONFIG_AUTH_HEADER_VALUE_NAME.toUpperCase().replace('.', '_');
+
     private ManagedChannel channel;
     private NoteServiceGrpc.NoteServiceBlockingStub noteClient;
 
@@ -49,22 +54,30 @@ public class SsbNotebookRepo implements NotebookRepo {
         this(new ZeppelinConfiguration());
     }
 
-    SsbNotebookRepo(ManagedChannelBuilder<?> channelBuilder) {
+    SsbNotebookRepo(ManagedChannelBuilder<?> channelBuilder, ZeppelinConfiguration conf) {
         channel = channelBuilder.build();
         noteClient = NoteServiceGrpc.newBlockingStub(channel);
+
+        // TODO: Check https://github.com/avast/grpc-java-jwt
+        String authKey = conf.getString(CONFIG_AUTH_HEADER_NAME_ENV_NAME, CONFIG_AUTH_HEADER_NAME_NAME, "");
+        String authValue = conf.getString(CONFIG_AUTH_HEADER_VALUE_ENV_NAME, CONFIG_AUTH_HEADER_VALUE_NAME, "");
+        if (!"".equals(authKey)) {
+            log.warn("Using static auth metadata {}", authKey);
+            noteClient = noteClient.withCallCredentials(new StaticCallCredentials(authKey, authValue));
+        }
     }
 
     public SsbNotebookRepo(ZeppelinConfiguration conf) {
-        this(createChannel(conf));
+        this(createChannel(conf), conf);
     }
 
-    static ManagedChannelBuilder createChannel(ZeppelinConfiguration conf) {
+    static ManagedChannelBuilder<?> createChannel(ZeppelinConfiguration conf) {
         String host = conf.getString(CONFIG_HOST_ENV_NAME, CONFIG_HOST_NAME, CONFIG_HOST_DEFAULT);
         int port = conf.getInt(CONFIG_PORT_ENV_NAME, CONFIG_PORT_NAME, CONFIG_PORT_DEFAULT);
-        LOG.info("Note backend: {}:{}", host, port);
+        log.info("Note backend: {}:{}", host, port);
         ManagedChannelBuilder<?> channelBuilder = ManagedChannelBuilder.forAddress(host, port);
         if (conf.getBoolean(CONFIG_PLAIN_ENV_NAME, CONFIG_PLAIN_NAME, CONFIG_PLAIN_DEFAULT)) {
-            LOG.warn("" +
+            log.warn("" +
                     "You chose to use a plain (unencrypted) connection.\n" +
                     "Make sure you understand the implications.");
             channelBuilder.usePlaintext();
@@ -151,7 +164,7 @@ public class SsbNotebookRepo implements NotebookRepo {
                     // Ask service to parse the paragraphs.
                     Iterator<Dataset> inputs = noteClient.parseInput(grpcParagraph);
                     if (inputs.hasNext() && !noteBuilder.getInputsList().isEmpty()) {
-                        LOG.warn("the dataset {} has more than one paragraph with inputs (paragraph {})", note.getId(),
+                        log.warn("the dataset {} has more than one paragraph with inputs (paragraph {})", note.getId(),
                                 paragraph.getId());
                     }
                     while (inputs.hasNext()) {
@@ -161,7 +174,7 @@ public class SsbNotebookRepo implements NotebookRepo {
                     // Ask service to parse the paragraphs.
                     Iterator<Dataset> outputs = noteClient.parseOutput(grpcParagraph);
                     if (inputs.hasNext() && !noteBuilder.getOutputsList().isEmpty()) {
-                        LOG.warn("the dataset {} has more than one paragraph with outputs (paragraph {})", note.getId(),
+                        log.warn("the dataset {} has more than one paragraph with outputs (paragraph {})", note.getId(),
                                 paragraph.getId());
                     }
 
