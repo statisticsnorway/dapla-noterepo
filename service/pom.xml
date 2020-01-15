@@ -10,6 +10,7 @@
         <relativePath/>
     </parent>
 
+    <groupId>no.ssb.dapla.notes</groupId>
     <artifactId>dapla-notes-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>${project.artifactId}</name>

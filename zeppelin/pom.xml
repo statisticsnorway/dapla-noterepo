@@ -10,6 +10,7 @@
         <relativePath/>
     </parent>
 
+    <groupId>no.ssb.dapla.notes</groupId>
     <artifactId>dapla-notes-zeppelin</artifactId>
     <!--
         TODO: use own groupId?
