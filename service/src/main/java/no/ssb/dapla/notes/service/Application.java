@@ -1,54 +1,41 @@
 package no.ssb.dapla.notes.service;
 
+import io.helidon.config.Config;
 import io.helidon.grpc.server.GrpcRouting;
 import io.helidon.grpc.server.GrpcServer;
 import no.ssb.dapla.notes.service.memory.MemoryRepository;
 import no.ssb.dapla.notes.service.parsing.ScalaParagraphConverter;
+import no.ssb.helidon.application.DefaultHelidonApplication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.LogManager;
 
-public class Application {
+public class Application extends DefaultHelidonApplication {
 
     private static final Logger log = LoggerFactory.getLogger(Application.class);
 
-    public static void main(String[] args) throws InterruptedException, ExecutionException, TimeoutException {
+    public static void main(String[] args) {
+        installSlf4jJulBridge();
 
-        setupLogging();
+        new ApplicationBuilder().build()
+                .start()
+                .toCompletableFuture()
+                .orTimeout(10, TimeUnit.SECONDS)
+                .thenAccept(app -> log.info("gRPC Server started at: http://localhost:{}", app.get(GrpcServer.class).port()));
+    }
 
+    Application(Config config) {
         NoteService noteService = new NoteService(
                 List.of(new ScalaParagraphConverter()),
                 new MemoryRepository()
         );
-
+        put(NoteService.class, noteService);
         GrpcServer grpcServer = GrpcServer
                 .create(GrpcRouting.builder()
                         .register(noteService)
-                        .build())
-                .start()
-                .toCompletableFuture()
-                .get(10, TimeUnit.SECONDS);
-        log.info("gRPC Server started at: http://localhost:{}", grpcServer.port());
+                        .build());
+        put(GrpcServer.class, grpcServer);
     }
-
-    /**
-     * Disable the JUL hendler and instal the SLF4J bridge.
-     */
-    private static void setupLogging() {
-        // TODO: Find where the ContextInitializer comes from.
-        //String logbackConfigurationFile = System.getenv("LOGBACK_CONFIGURATION_FILE");
-        // if (logbackConfigurationFile != null) {
-        //    System.setProperty(ContextInitializer.CONFIG_FILE_PROPERTY, logbackConfigurationFile);
-        // }
-        LogManager.getLogManager().reset();
-        SLF4JBridgeHandler.removeHandlersForRootLogger();
-        SLF4JBridgeHandler.install();
-    }
-
 }

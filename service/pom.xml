@@ -1,12 +1,12 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.helidon.applications</groupId>
-        <artifactId>helidon-se</artifactId>
-        <version>1.4.1</version>
+        <groupId>no.ssb.dapla</groupId>
+        <artifactId>application</artifactId>
+        <version>0.1-SNAPSHOT</version>
         <relativePath/>
     </parent>
 
@@ -17,113 +17,20 @@
 
     <properties>
         <mainClass>no.ssb.dapla.notes.service.Application</mainClass>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
 
-    <repositories>
-        <repository>
-            <id>ssb-bip-releases</id>
-            <url>https://nexus.prod-bip-ci.ssb.no/repository/maven-releases/</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>ssb-bip-snapshots</id>
-            <url>https://nexus.prod-bip-ci.ssb.no/repository/maven-snapshots/</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>io.helidon.applications</groupId>
-                <artifactId>helidon-se</artifactId>
-                <version>1.4.1</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>jul-to-slf4j</artifactId>
-                <version>1.7.30</version>
-            </dependency>
-            <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-classic</artifactId>
-                <version>1.2.3</version>
-            </dependency>
-
-            <dependency>
-                <groupId>javax.annotation</groupId>
-                <artifactId>javax.annotation-api</artifactId>
-                <version>1.3.2</version>
-            </dependency>
-
-            <dependency>
-                <groupId>no.ssb.dapla.notes</groupId>
-                <artifactId>dapla-notes-api</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-netty-shaded</artifactId>
-                <version>1.25.0</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.protobuf</groupId>
-                <artifactId>protobuf-java</artifactId>
-                <version>3.11.1</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.google.code.findbugs</groupId>
-                        <artifactId>jsr305</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>com.google.protobuf</groupId>
-                <artifactId>protobuf-java-util</artifactId>
-                <version>3.11.1</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.google.code.findbugs</groupId>
-                        <artifactId>jsr305</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.zeppelin</groupId>
-                <artifactId>zeppelin-zengine</artifactId>
-                <version>0.8.2</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.uuid</groupId>
-                <artifactId>java-uuid-generator</artifactId>
-                <version>3.2.0</version>
-            </dependency>
-            <dependency>
-                <groupId>org.assertj</groupId>
-                <artifactId>assertj-core</artifactId>
-                <version>3.11.1</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
     <dependencies>
-
+        <dependency>
+            <groupId>no.ssb.helidon</groupId>
+            <artifactId>helidon-application</artifactId>
+        </dependency>
         <dependency>
             <groupId>no.ssb.dapla.notes</groupId>
             <artifactId>dapla-notes-protobuf</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>no.ssb.dapla.auth.dataset</groupId>
+            <artifactId>dapla-auth-dataset-protobuf</artifactId>
         </dependency>
         <dependency>
             <groupId>com.google.protobuf</groupId>
@@ -133,95 +40,18 @@
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java-util</artifactId>
         </dependency>
-        <dependency>
-            <groupId>no.ssb.jpms</groupId>
-            <artifactId>jsr305-and-javax.annotation-api</artifactId>
-            <version>1.1</version>
-        </dependency>
-
-        <!-- Helidon uses jul -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jul-to-slf4j</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.helidon.grpc</groupId>
-            <artifactId>helidon-grpc-server</artifactId>
-            <exclusions>
-                <exclusion>
-                    <artifactId>grpc-core</artifactId>
-                    <groupId>io.grpc</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>grpc-api</artifactId>
-                    <groupId>io.grpc</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>jsr305</artifactId>
-                    <groupId>com.google.code.findbugs</groupId>
-                </exclusion>
-                <exclusion>
-                    <groupId>javax.annotation</groupId>
-                    <artifactId>javax.annotation-api</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
-
 
     <build>
         <plugins>
             <plugin>
+                <groupId>com.rodiontsev.maven.plugins</groupId>
+                <artifactId>build-info-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>copy-libs</id>
-                        <phase>prepare-package</phase>
-                        <goals>
-                            <goal>copy-dependencies</goal>
-                        </goals>
-                        <configuration>
-                            <includeScope>runtime</includeScope>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>io.helidon.build-tools</groupId>
-                <artifactId>helidon-maven-plugin</artifactId>
-                <configuration>
-                    <skipNativeImage>true</skipNativeImage>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>11</source>
-                    <target>11</target>
-                    <release>11</release>
-                    <meminitial>64m</meminitial>
-                    <maxmem>512m</maxmem>
-                </configuration>
             </plugin>
         </plugins>
     </build>
-
 </project>
