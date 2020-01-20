@@ -14,11 +14,14 @@ import java.util.concurrent.TimeUnit;
 
 public class Application extends DefaultHelidonApplication {
 
-    private static final Logger log = LoggerFactory.getLogger(Application.class);
+    private static final Logger log;
+
+    static {
+        installSlf4jJulBridge();
+        log = LoggerFactory.getLogger(Application.class);
+    }
 
     public static void main(String[] args) {
-        installSlf4jJulBridge();
-
         new ApplicationBuilder().build()
                 .start()
                 .toCompletableFuture()
