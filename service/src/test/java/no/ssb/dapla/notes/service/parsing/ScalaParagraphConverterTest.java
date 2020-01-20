@@ -26,10 +26,13 @@ class ScalaParagraphConverterTest {
 
         for (String input : inputs) {
             Paragraph paragraph = Paragraph.newBuilder().setCode(input).build();
-            assertThat(converter.parseInput(paragraph)).asList().extracting(dataset -> ((Dataset) dataset).getName())
+
+            assertThat(converter.parseInput(paragraph)).toIterable()
+                    .extracting(Dataset::getName)
                     .containsExactly("someInput");
 
-            assertThat(converter.parseInput(paragraph)).asList().extracting(dataset -> ((Dataset) dataset).getUri())
+            assertThat(converter.parseInput(paragraph)).toIterable()
+                    .extracting(Dataset::getUri)
                     .containsExactly("someUri");
         }
     }
@@ -46,10 +49,13 @@ class ScalaParagraphConverterTest {
 
         for (String input : outputs) {
             Paragraph paragraph = Paragraph.newBuilder().setCode(input).build();
-            assertThat(converter.parseOutput(paragraph)).asList().extracting(dataset -> ((Dataset) dataset).getName())
+
+            assertThat(converter.parseOutput(paragraph)).toIterable()
+                    .extracting(Dataset::getName)
                     .containsExactly("someOutputVariable");
 
-            assertThat(converter.parseOutput(paragraph)).asList().extracting(dataset -> ((Dataset) dataset).getUri())
+            assertThat(converter.parseOutput(paragraph)).toIterable()
+                    .extracting(Dataset::getUri)
                     .containsExactly("someUri");
         }
     }
