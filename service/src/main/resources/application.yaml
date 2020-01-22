@@ -17,9 +17,14 @@
 app:
   greeting: "Hello"
 
-server:
-  port: 8080
+webserver:
+  port: 10130
   host: 0.0.0.0
+
+grpcserver:
+  host: 0.0.0.0
+  port: 10138
+
 #  experimental:
 #    http2:
 #      enable: true

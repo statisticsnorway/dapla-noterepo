@@ -3,6 +3,7 @@ package no.ssb.dapla.notes.service;
 import io.helidon.config.Config;
 import io.helidon.grpc.server.GrpcRouting;
 import io.helidon.grpc.server.GrpcServer;
+import io.helidon.grpc.server.GrpcServerConfiguration;
 import no.ssb.dapla.notes.service.memory.MemoryRepository;
 import no.ssb.dapla.notes.service.parsing.ScalaParagraphConverter;
 import no.ssb.helidon.application.DefaultHelidonApplication;
@@ -35,10 +36,12 @@ public class Application extends DefaultHelidonApplication {
                 new MemoryRepository()
         );
         put(NoteService.class, noteService);
-        GrpcServer grpcServer = GrpcServer
-                .create(GrpcRouting.builder()
+        GrpcServer grpcServer = GrpcServer.create(
+                GrpcServerConfiguration.create(config.get("grpcserver")),
+                GrpcRouting.builder()
                         .register(noteService)
-                        .build());
+                        .build()
+        );
         put(GrpcServer.class, grpcServer);
     }
 }
