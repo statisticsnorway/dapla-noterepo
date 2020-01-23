@@ -20,12 +20,12 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * A git based repository that supports per user branches.
  */
-public abstract class GitForkRepository implements NotebookRepoWithVersionControl {
+public abstract class GitBranchRepository implements NotebookRepoWithVersionControl {
 
     private final Map<AuthenticationInfo, Repository> perUserRepositories = new ConcurrentHashMap<>();
     private final Repository masterRepository;
 
-    public GitForkRepository(Repository gitRepository) {
+    public GitBranchRepository(Repository gitRepository) {
         this.masterRepository = gitRepository;
     }
 
