@@ -5,42 +5,63 @@ import org.apache.zeppelin.notebook.NoteInfo;
 import org.apache.zeppelin.notebook.repo.NotebookRepoSettingsInfo;
 import org.apache.zeppelin.notebook.repo.NotebookRepoWithVersionControl;
 import org.apache.zeppelin.user.AuthenticationInfo;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.revwalk.RevCommit;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * A git based repository that supports remotes
- * <p>
- * This repository supports remote git servers.
- * It relies on a jgit client to do so.
- * <p>
- * Each user accessing the repo will create a fork of the master repository. When a
- * user (from the AuthenticationInfo) requests something, his/her fork is returned
- * it exists or a new fork is created.
+ * A git based repository that supports per user branches.
  */
 public abstract class GitForkRepository implements NotebookRepoWithVersionControl {
 
-    // Keep a hot cache of clients.
-    private final Map<AuthenticationInfo, Repository> cachedClient = new ConcurrentHashMap<>();
+    private final Map<AuthenticationInfo, Repository> perUserRepositories = new ConcurrentHashMap<>();
     private final Repository masterRepository;
 
     public GitForkRepository(Repository gitRepository) {
         this.masterRepository = gitRepository;
     }
 
-    abstract Repository getOrCreateFork(AuthenticationInfo subject);
+    abstract Repository getOrCreateBranch(AuthenticationInfo subject);
 
     private Repository getRepository(AuthenticationInfo subject) {
-        return cachedClient.computeIfAbsent(subject, this::getOrCreateFork);
+        return perUserRepositories.computeIfAbsent(subject, this::getOrCreateBranch);
+    }
+
+    static Revision toRevision(RevCommit commit) {
+        return new Revision(
+                ObjectId.toString(commit.getId()),
+                commit.getFullMessage(),
+                commit.getCommitTime()
+        );
     }
 
     @Override
     public Revision checkpoint(String pattern, String commitMessage, AuthenticationInfo subject) throws IOException {
-        return null;
+        Git userGit = new Git(getRepository(subject));
+        try {
+            // TODO(arild): branch -d to delete merged branches.
+            //   if success recreate from HEAD
+            //   if failure pull from remote.
+            userGit.add().addFilepattern(pattern).call();
+            RevCommit commit = userGit.commit()
+                    .setMessage(commitMessage)
+                    .setAuthor(subject.getUser(), subject.getUser())
+                    .setCommitter("zeppelin",
+                            "zeppelin@" + InetAddress.getLocalHost().getHostName())
+                    .call();
+            return toRevision(commit);
+
+        } catch (GitAPIException e) {
+            throw new IOException("Git error: " + e.getMessage(), e);
+        }
     }
 
     @Override
@@ -81,7 +102,7 @@ public abstract class GitForkRepository implements NotebookRepoWithVersionContro
     @Override
     public void close() {
         masterRepository.close();
-        for (Repository value : cachedClient.values()) {
+        for (Repository value : perUserRepositories.values()) {
             value.close();
         }
     }
