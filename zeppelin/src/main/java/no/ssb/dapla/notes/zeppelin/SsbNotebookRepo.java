@@ -86,28 +86,6 @@ public class SsbNotebookRepo implements NotebookRepo {
         return channelBuilder;
     }
 
-    /**
-     * Extracts the name for the note.
-     * <p>
-     * The path is included in the name in zeppelin.
-     */
-    static String extractName(Note note) {
-        String name = note.getName();
-        if (name.contains("/")) {
-            name = name.substring(name.lastIndexOf('/'));
-        }
-        return name;
-    }
-
-    /**
-     * Extracts the namespace (folder) of a note
-     * <p>
-     * Path is relative and '/' separated.
-     */
-    static List<String> extractNamespace(Note note) {
-        return Arrays.asList(note.getFolderId().split("/"));
-    }
-
     private static UUID extractUUID(Note note) {
         return UUID_GENERATOR.generate(note.getId());
     }
@@ -148,8 +126,8 @@ public class SsbNotebookRepo implements NotebookRepo {
                     .setUuid(extractUUID(note).toString())
                     .addAliasIdentifiers(note.getId())
 
-                    .setName(extractName(note))
-                    .addAllNamespace(extractNamespace(note));
+                    .setName(GitBranchRepository.extractName(note))
+                    .addAllNamespace(GitBranchRepository.extractNamespace(note));
 
 
             for (Paragraph paragraph : note.getParagraphs()) {
