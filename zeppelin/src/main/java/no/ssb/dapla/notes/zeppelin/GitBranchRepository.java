@@ -16,14 +16,21 @@ import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.URIish;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.InetAddress;
@@ -33,10 +40,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * A git based repository that supports per user branches.
@@ -44,19 +47,40 @@ import java.util.stream.Collectors;
  * This class is different from the zeppelin implementation because it
  * exposes the
  */
-public abstract class GitBranchRepository implements NotebookRepoWithVersionControl {
-
+public class GitBranchRepository implements NotebookRepoWithVersionControl {
+    private static final Logger LOGGER = LoggerFactory.getLogger(GitBranchRepository.class);
     private static final Logger log = LoggerFactory.getLogger(GitBranchRepository.class);
 
     // Each user branch is kept checked out in their own folder.
-    private final Map<AuthenticationInfo, Repository> perUserRepositories = new ConcurrentHashMap<>();
+    private final Map<AuthenticationInfo, Git> perUserRepositories = new ConcurrentHashMap<>();
     private final Configuration conf;
 
     public GitBranchRepository(ZeppelinConfiguration conf) {
         this.conf = new Configuration(conf);
     }
 
-    static Revision toRevision(RevCommit commit) {
+    private Git getOrCreateBranch(AuthenticationInfo subject) {
+        Git git = null;
+        try {
+
+            git = Git.cloneRepository()
+                    .setURI(conf.getGitUrl())
+                    .setDirectory(new File(conf.getGitPath() + File.separator + subject.getUser()))
+                    .call();
+            // check if user branch exists
+            if (git.branchList().call().stream()
+                    .noneMatch(branch -> branch.getName().equals(subject.getUser()))) {
+                git.branchCreate().setName(subject.getUser()).call();
+            }
+
+            // TODO check if branch is fully merged. If so, delete and recreate (to get changes from master)
+        } catch (GitAPIException ex) {
+            ex.printStackTrace();
+        }
+        return git;
+    }
+
+    static NotebookRepoWithVersionControl.Revision toRevision(RevCommit commit) {
         return new Revision(
                 ObjectId.toString(commit.getId()),
                 commit.getFullMessage(),
@@ -121,10 +145,8 @@ public abstract class GitBranchRepository implements NotebookRepoWithVersionCont
     }
 
     static Path getRootDir(Git userGit) {
-        return null;
+        return userGit.getRepository().getWorkTree().toPath();
     }
-
-    abstract Repository getOrCreateBranch(AuthenticationInfo subject);
 
     // TODO: just for test. Remove.
     public Git hadrienTestGetRepo(String userName) throws IOException, URISyntaxException, GitAPIException {
@@ -156,13 +178,13 @@ public abstract class GitBranchRepository implements NotebookRepoWithVersionCont
         return git;
     }
 
-    private Repository getRepository(AuthenticationInfo subject) {
+    private Git getRepository(AuthenticationInfo subject) {
         return perUserRepositories.computeIfAbsent(subject, this::getOrCreateBranch);
     }
 
     @Override
     public Revision checkpoint(String pattern, String commitMessage, AuthenticationInfo subject) throws IOException {
-        Git userGit = new Git(getRepository(subject));
+        Git userGit = getRepository(subject);
         try {
             // TODO: Should use git alternates at some point.
             //
@@ -188,7 +210,7 @@ public abstract class GitBranchRepository implements NotebookRepoWithVersionCont
         RevCommit stash = null;
 
         try {
-            Git userGit = new Git(getRepository(subject));
+            Git userGit = getRepository(subject);
             List<DiffEntry> gitDiff = userGit.diff().setPathFilter(PathFilter.create(noteId)).call();
             boolean modified = !gitDiff.isEmpty();
             if (modified) {
@@ -220,7 +242,7 @@ public abstract class GitBranchRepository implements NotebookRepoWithVersionCont
         log.debug("Listing history for {}:", noteId);
 
         try {
-            Git userGit = new Git(getRepository(subject));
+            Git userGit = getRepository(subject);
             Iterable<RevCommit> logs = userGit.log().addPath(noteId).call();
             for (RevCommit commit : logs) {
                 history.add(new Revision(log.getName(), commit.getShortMessage(), commit.getCommitTime()));
@@ -264,13 +286,15 @@ public abstract class GitBranchRepository implements NotebookRepoWithVersionCont
     @Override
     public List<NoteInfo> list(AuthenticationInfo subject) throws IOException {
         // Recursively walk the files to build the list.
-        Git userGit = new Git(getRepository(subject));
+        Git userGit = getRepository(subject);
         Path rootDir = getRootDir(userGit);
         List<NoteInfo> list = new ArrayList<>();
-        Iterator<Path> it = Files.walk(rootDir).filter(Files::isRegularFile).iterator();
+        Iterator<Path> it = Files.walk(rootDir).filter(Files::isRegularFile).filter(file -> !file.toString().contains(".git")).iterator();
         while (it.hasNext()) {
             Path next = it.next();
-            list.add(new NoteInfo(getNote(next)));
+            if (!next.toString().contains(".git")) {
+                list.add(new NoteInfo(getNote(next)));
+            }
         }
         return list;
     }
@@ -302,7 +326,7 @@ public abstract class GitBranchRepository implements NotebookRepoWithVersionCont
     @Override
     public void close() {
         RuntimeException ex = null;
-        for (Repository value : perUserRepositories.values()) {
+        for (Git value : perUserRepositories.values()) {
             try {
                 value.close();
             } catch (RuntimeException e) {
@@ -331,7 +355,7 @@ public abstract class GitBranchRepository implements NotebookRepoWithVersionCont
     static class Configuration {
 
         static final String CONFIG_GIT_URL_NAME = "zeppelin.notebook.ssb.git.url";
-        static final String CONFIG_GIT_PATH_NAME = "zeppelin.notebook.ssb.git.path";
+        static final String CONFIG_NOTEBOOK_PATH_NAME = "zeppelin.notebook.ssb.git.path";
         static final String CONFIG_GIT_USERNAME_NAME = "zeppelin.notebook.ssb.git.username";
         static final String CONFIG_GIT_PASSWORD_NAME = "zeppelin.notebook.ssb.git.password";
         private final ZeppelinConfiguration configuration;
@@ -359,7 +383,7 @@ public abstract class GitBranchRepository implements NotebookRepoWithVersionCont
         }
 
         public Path getGitPath() {
-            String name = CONFIG_GIT_PATH_NAME;
+            String name = CONFIG_NOTEBOOK_PATH_NAME;
             String path = configuration.getString(envName(name), name, null);
             return FileSystems.getDefault().getPath("", path).normalize();
         }
