@@ -45,7 +45,11 @@ import java.util.*;
  * A git based repository that supports per user branches.
  * <p>
  * This class is different from the zeppelin implementation because it
- * exposes the
+ * saves the notes in folders following the name of the notes as
+ * opposed to the id of the notes. The note name is used as file name.
+ *
+ * Each user gets it's own local copy of the remote repository. The changes
+ * are pushed on the remote repository in branches named after the username.
  */
 public class GitBranchRepository implements NotebookRepoWithVersionControl {
     private static final Logger LOGGER = LoggerFactory.getLogger(GitBranchRepository.class);
