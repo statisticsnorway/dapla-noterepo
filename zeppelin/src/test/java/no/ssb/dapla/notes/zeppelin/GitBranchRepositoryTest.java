@@ -7,11 +7,16 @@ import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.notebook.Note;
 import org.apache.zeppelin.notebook.NoteInfo;
 import org.apache.zeppelin.user.AuthenticationInfo;
+import org.eclipse.jgit.api.FetchCommand;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.RemoteAddCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.transport.CredentialsProvider;
+import org.eclipse.jgit.transport.URIish;
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -134,20 +139,6 @@ public class GitBranchRepositoryTest {
                 "bar",
                 "foo bar"
         );
-    }
-
-    @Test
-    void testConnectToGithub() throws GitAPIException, IOException, URISyntaxException {
-        ZeppelinConfiguration c = new ZeppelinConfiguration();
-
-        GitBranchRepository repository = new GitBranchRepository(c) {
-            Repository getOrCreateBranch(AuthenticationInfo subject) {
-                return null;
-            }
-        };
-
-        repository.hadrienTestGetRepo("hadrien");
-
     }
 
     /**

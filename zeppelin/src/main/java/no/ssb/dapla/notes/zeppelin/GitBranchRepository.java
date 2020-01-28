@@ -152,36 +152,6 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
         return userGit.getRepository().getWorkTree().toPath();
     }
 
-    // TODO: just for test. Remove.
-    public Git hadrienTestGetRepo(String userName) throws IOException, URISyntaxException, GitAPIException {
-
-        File gitDir = conf.getGitPath().resolve(userName).resolve(".git").toFile();
-        FileRepository repository = new FileRepository(gitDir);
-        if (!repository.getDirectory().exists()) {
-            repository.create(true);
-        }
-
-        Git git = new Git(repository);
-
-        RemoteAddCommand remoteAdd = git.remoteAdd();
-        // TODO better name than origin?
-        remoteAdd.setName("origin");
-        remoteAdd.setUri(new URIish(conf.getGitUrl()));
-        remoteAdd.call();
-
-        FetchCommand fetch = git.fetch();
-        String gitUsername = conf.getGitUserName();
-        String gitPassword = conf.getGitPassword();
-        if (gitUsername != null && gitPassword != null) {
-            CredentialsProvider credentialsProvider = new UsernamePasswordCredentialsProvider(
-                    gitUsername, gitPassword
-            );
-            fetch.setCredentialsProvider(credentialsProvider);
-        }
-        fetch.call();
-        return git;
-    }
-
     private Git getRepository(AuthenticationInfo subject) {
         return perUserRepositories.computeIfAbsent(subject, this::getOrCreateBranch);
     }
