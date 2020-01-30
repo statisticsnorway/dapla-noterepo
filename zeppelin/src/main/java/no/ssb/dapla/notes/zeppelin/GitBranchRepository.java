@@ -129,7 +129,7 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
         try {
             Git git;
             File userFolder = getUserFolder(user).toFile();
-            if (!userFolder.exists()) {
+            if (!userFolder.exists() || !Arrays.asList(Objects.requireNonNull(userFolder.list())).contains(".git")) {
                 CloneCommand cloneCommand = Git.cloneRepository()
                         .setURI(conf.getGitUrl())
                         .setDirectory(new File(conf.getGitPath() + File.separator + user));
