@@ -8,38 +8,29 @@ import org.apache.zeppelin.notebook.NoteInfo;
 import org.apache.zeppelin.notebook.repo.NotebookRepoSettingsInfo;
 import org.apache.zeppelin.notebook.repo.NotebookRepoWithVersionControl;
 import org.apache.zeppelin.user.AuthenticationInfo;
-import org.eclipse.jgit.api.FetchCommand;
+import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.RemoteAddCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
+import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import org.eclipse.jgit.transport.CredentialsProvider;
-import org.eclipse.jgit.transport.URIish;
-import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
-import org.eclipse.jgit.treewalk.filter.PathFilter;
-
 import java.io.*;
 import java.net.InetAddress;
-import java.net.URISyntaxException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * A git based repository that supports per user branches.
@@ -47,7 +38,7 @@ import java.util.*;
  * This class is different from the zeppelin implementation because it
  * saves the notes in folders following the name of the notes as
  * opposed to the id of the notes. The note name is used as file name.
- *
+ * <p>
  * Each user gets it's own local copy of the remote repository. The changes
  * are pushed on the remote repository in branches named after the username.
  */
@@ -56,32 +47,11 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
     private static final Logger log = LoggerFactory.getLogger(GitBranchRepository.class);
 
     // Each user branch is kept checked out in their own folder.
-    private final Map<AuthenticationInfo, Git> perUserRepositories = new ConcurrentHashMap<>();
+    private final Map<String, Git> perUserRepositories = new ConcurrentHashMap<>();
     private final Configuration conf;
 
     public GitBranchRepository(ZeppelinConfiguration conf) {
         this.conf = new Configuration(conf);
-    }
-
-    private Git getOrCreateBranch(AuthenticationInfo subject) {
-        Git git = null;
-        try {
-
-            git = Git.cloneRepository()
-                    .setURI(conf.getGitUrl())
-                    .setDirectory(new File(conf.getGitPath() + File.separator + subject.getUser()))
-                    .call();
-            // check if user branch exists
-            if (git.branchList().call().stream()
-                    .noneMatch(branch -> branch.getName().equals(subject.getUser()))) {
-                git.branchCreate().setName(subject.getUser()).call();
-            }
-
-            // TODO check if branch is fully merged. If so, delete and recreate (to get changes from master)
-        } catch (GitAPIException ex) {
-            ex.printStackTrace();
-        }
-        return git;
     }
 
     static NotebookRepoWithVersionControl.Revision toRevision(RevCommit commit) {
@@ -92,7 +62,6 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
         );
     }
 
-
     private static Matcher getEmailMatcher(String email) {
         Pattern emailPattern = Pattern.compile("(^.+)@.+\\..+$");
         return emailPattern.matcher(email);
@@ -102,9 +71,9 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
      * Normalize the subject to email.
      */
     static String extractEmail(AuthenticationInfo subject) {
-        if (subject.isAnonymous()) {
-            throw new IllegalArgumentException("cannot use anonymous user");
-        }
+        //if (subject.isAnonymous()) {
+        //    throw new IllegalArgumentException("cannot use anonymous user");
+        //}
         Matcher matcher = getEmailMatcher(subject.getUser());
         if (matcher.matches()) {
             return subject.getUser();
@@ -148,12 +117,52 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
         return Arrays.asList(note.getFolderId().split("/"));
     }
 
-    static Path getRootDir(Git userGit) {
-        return userGit.getRepository().getWorkTree().toPath();
+    Path getUserFolder(AuthenticationInfo subject) {
+        return getUserFolder(extractName(subject));
+    }
+
+    Path getUserFolder(String user) {
+        return conf.getGitPath().resolve(user);
+    }
+
+    private Git getOrCreateBranch(String user) {
+        try {
+            Git git;
+            File userFolder = getUserFolder(user).toFile();
+            if (!userFolder.exists()) {
+                CloneCommand cloneCommand = Git.cloneRepository()
+                        .setURI(conf.getGitUrl())
+                        .setDirectory(new File(conf.getGitPath() + File.separator + user));
+
+                if (conf.getGitUserName() != null && conf.getGitPassword() != null) {
+                    cloneCommand.setCredentialsProvider(new UsernamePasswordCredentialsProvider(
+                            conf.getGitUserName(), conf.getGitPassword()
+                    ));
+                }
+
+                git = cloneCommand.call();
+            } else {
+                git = new Git(new FileRepository(userFolder));
+            }
+
+            // check if user branch exists
+            if (git.branchList().call().stream()
+                    .noneMatch(branch -> branch.getName().equals(user))) {
+                git.branchCreate().setName(user).call();
+            }
+
+            // TODO check if branch is fully merged. If so, delete and recreate (to get changes from master)
+            return git;
+
+        } catch (GitAPIException | IOException ex) {
+            LOGGER.warn("failed to create the repository for {}", user, ex);
+            // This method is used in a Map.computeIfAbsent. Null values will be ignored.
+            return null;
+        }
     }
 
     private Git getRepository(AuthenticationInfo subject) {
-        return perUserRepositories.computeIfAbsent(subject, this::getOrCreateBranch);
+        return perUserRepositories.computeIfAbsent(subject.getUser(), this::getOrCreateBranch);
     }
 
     @Override
@@ -260,14 +269,17 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
     @Override
     public List<NoteInfo> list(AuthenticationInfo subject) throws IOException {
         // Recursively walk the files to build the list.
-        Git userGit = getRepository(subject);
-        Path rootDir = getRootDir(userGit);
+        Path rootDir = getRepository(subject).getRepository().getWorkTree().toPath();
         List<NoteInfo> list = new ArrayList<>();
         Iterator<Path> it = Files.walk(rootDir).filter(Files::isRegularFile).filter(file -> !file.toString().contains(".git")).iterator();
         while (it.hasNext()) {
             Path next = it.next();
             if (!next.toString().contains(".git")) {
-                list.add(new NoteInfo(getNote(next)));
+                try {
+                    list.add(new NoteInfo(getNote(next)));
+                } catch (Exception ex) {
+                    LOGGER.warn("failed to load {}. Maybe it was not a note?", next, ex);
+                }
             }
         }
         return list;
@@ -283,12 +295,22 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
 
     @Override
     public void save(Note note, AuthenticationInfo subject) throws IOException {
-        String relativePath = String.join(File.separator, extractNamespace(note));
-        Path absolutePath = conf.getGitPath().resolve(relativePath);
-        Files.createDirectories(absolutePath);
-        String json = note.toJson();
-        try (BufferedWriter out = new BufferedWriter(new FileWriter(absolutePath.toFile()))) {
-            out.write(json);
+        // Strange thing; when creating the note this method is called twice. First
+        // without the name.
+        if (note.getName().equals(note.getId())) {
+            LOGGER.debug("ignoring the note {}", note);
+        } else {
+
+            Path userRepository = getRepository(subject).getRepository().getWorkTree().toPath();
+            Path fileName = Paths.get(extractName(note));
+
+            LOGGER.info("Saving note {} to {} / {}", note.getId(), userRepository, fileName);
+            LOGGER.info("Note:{}", note.toJson());
+            Files.createDirectories(userRepository);
+            String json = note.toJson();
+            try (BufferedWriter out = new BufferedWriter(new FileWriter(userRepository.resolve(fileName).toFile()))) {
+                out.write(json);
+            }
         }
     }
 
