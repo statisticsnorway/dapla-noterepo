@@ -9,25 +9,43 @@ import org.apache.zeppelin.notebook.repo.NotebookRepoSettingsInfo;
 import org.apache.zeppelin.notebook.repo.NotebookRepoWithVersionControl;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.eclipse.jgit.api.CloneCommand;
+import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -148,10 +166,27 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
             // check if user branch exists
             if (git.branchList().call().stream()
                     .noneMatch(branch -> branch.getName().equals(user))) {
-                git.branchCreate().setName(user).call();
+                // Create branch and push it
+                Ref userBranch = git.branchCreate().setName(user).call();
+                git.push()
+                        .add(userBranch)
+                        .setRefSpecs( new RefSpec( user+":"+user ))
+                        .call();
+
+                // Add config for tracking remote user branch
+                StoredConfig config = git.getRepository().getConfig();
+                config.setString( "branch", user, "remote", "origin" );
+                config.setString( "branch", user, "merge", "refs/heads/" + user );
+                config.save();
+
+                // Checkout newly created branch
+                git.checkout()
+                        .setName(user)
+                        .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
+                        .setStartPoint("origin/" + user)
+                        .call();
             }
 
-            // TODO check if branch is fully merged. If so, delete and recreate (to get changes from master)
             return git;
 
         } catch (GitAPIException | IOException ex) {
@@ -161,8 +196,44 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
         }
     }
 
-    private Git getRepository(AuthenticationInfo subject) {
-        return perUserRepositories.computeIfAbsent(subject.getUser(), this::getOrCreateBranch);
+    private Git
+    getRepository(AuthenticationInfo subject) throws IOException {
+        Git userGit = perUserRepositories.computeIfAbsent(subject.getUser(), this::getOrCreateBranch);
+
+        try {
+            userGit.pull().call();
+        } catch (GitAPIException e) {
+            throw new IOException("Failed to fetch from remote: " + e.getMessage(), e);
+        }
+
+        // Check if branch is behind master and fully merged, if so, delete and recreate from master
+        Repository repo = userGit.getRepository();
+
+        try (RevWalk revWalk = new RevWalk(repo)) {
+            RevCommit masterHead = revWalk.parseCommit(repo.resolve("refs/heads/master"));
+            RevCommit userBranchHead = revWalk.parseCommit(repo.findRef(subject.getUser()).getObjectId());
+
+            // Check if master head is unequal to user branch head and user branch is fully merged
+            if (!masterHead.equals(userBranchHead) && revWalk.isMergedInto(userBranchHead, masterHead)) {
+                // Check out user branch and merge from master
+                userGit.checkout().setName(subject.getUser()).call();
+
+                userGit.pull().setRebase(true).setRemote("origin").setRemoteBranchName("master").call();
+                userGit.push().add(repo.findRef(subject.getUser())).call();
+            }
+        } catch (GitAPIException e) {
+            log.error("Failed rebasing from master", e);
+        }
+
+        return userGit;
+    }
+
+    MergeResult mergeToBranch(String branchToMergeTo, AuthenticationInfo subject) throws IOException, GitAPIException {
+        Git userGit = getRepository(subject);
+        userGit.checkout().setName(branchToMergeTo).setCreateBranch(false).call();
+        MergeResult mergeResult = userGit.merge().include(userGit.getRepository().findRef(subject.getUser())).call();
+        userGit.push().add(userGit.getRepository().findRef(branchToMergeTo)).call();
+        return mergeResult;
     }
 
     @Override
@@ -181,6 +252,9 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
                     .setCommitter("zeppelin",
                             "zeppelin@" + InetAddress.getLocalHost().getHostName())
                     .call();
+
+            // Push local branch to remote
+            userGit.push().add(userGit.getRepository().findRef(subject.getUser())).call();
             return toRevision(commit);
         } catch (GitAPIException e) {
             throw new IOException("Git error: " + e.getMessage(), e);
@@ -235,6 +309,8 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
             log.warn("No Head found for {}, {}", noteId, var7.getMessage());
         } catch (GitAPIException var8) {
             log.error("Failed to get logs for {}", noteId, var8);
+        } catch (IOException e) {
+            log.error("Failed to get repository for user {}", subject.getUser());
         }
 
         return history;

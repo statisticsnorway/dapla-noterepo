@@ -5,13 +5,14 @@ import com.google.gson.JsonObject;
 import org.apache.commons.io.FileUtils;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.notebook.NoteInfo;
+import org.apache.zeppelin.notebook.repo.NotebookRepoWithVersionControl;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -25,12 +26,11 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.Random;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class GitBranchRepositoryBranchLogicTest {
 
     private static final String TEST_NOTE_ID = "2A94M5J1Z";
-    private static final String TEST_NOTE_PATH = "process" + File.separator + "step" + File.separator;
     private static final String TEST_NOTE_NAME = "Zeppelin Tutorial";
     public static Path tmpDir;
     private static ZeppelinConfiguration conf;
@@ -42,8 +42,8 @@ class GitBranchRepositoryBranchLogicTest {
     private static String localNotebookDirName = "notebooks";
     private static String remoteTestNoteDir;
 
-    @BeforeAll
-    public static void setUp() throws Exception {
+    @BeforeEach
+    public void setUp() throws Exception {
 
         // For some reasons @TmpDir does not work when the tests are
         // executed from maven.
@@ -52,7 +52,7 @@ class GitBranchRepositoryBranchLogicTest {
         conf = ZeppelinConfiguration.create();
 
         // Copy the test notebook directory from the test/resources/2A94M5J1Z folder to the fake remote Git directory
-        remoteTestNoteDir = Joiner.on(File.separator).join(tmpDir, remoteZeppelinDirName, TEST_NOTE_PATH);
+        remoteTestNoteDir = Joiner.on(File.separator).join(tmpDir, remoteZeppelinDirName) + File.separator;
         FileUtils.copyFile(
                 new File(
                         GitBranchRepositoryTest.class.getResource(
@@ -88,8 +88,8 @@ class GitBranchRepositoryBranchLogicTest {
 
     }
 
-    @AfterAll
-    static void afterAll() throws IOException {
+    @AfterEach
+    void afterAll() throws IOException {
         Files.walkFileTree(tmpDir, new SimpleFileVisitor<Path>() {
             public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) throws IOException {
                 Files.delete(path);
@@ -124,8 +124,8 @@ class GitBranchRepositoryBranchLogicTest {
 
         // Assert that a committed note is present in local branch
         String noteName = "Note2";
-        createNoteInLocalRepo(noteName);
-        gitHubNotebookRepo.checkpoint("*", "Commit Note2", USER1);
+        createNoteInLocalRepo(noteName, USER1.getUser());
+        gitHubNotebookRepo.checkpoint(".", "Commit Note2", USER1);
         list = gitHubNotebookRepo.list(USER1);
         assertThat(list.size()).isEqualTo(2);
         noteInfo = list.get(1);
@@ -142,13 +142,68 @@ class GitBranchRepositoryBranchLogicTest {
         assertThat(noteInfo.getName()).isEqualTo(TEST_NOTE_NAME);
     }
 
-    private void createNoteInLocalRepo(String noteName) throws IOException {
+    @Test
+    public void testRebaseAfterMerge() throws Exception{
+        // Log in as user 1
+        List<NoteInfo> list = gitHubNotebookRepo.list(USER1);
+        assertThat(list.size()).isEqualTo(1);
+        NoteInfo noteInfo = list.get(0);
+        assertThat(noteInfo).isNotNull();
+        assertThat(noteInfo.getId()).isEqualTo(TEST_NOTE_ID);
+        assertThat(noteInfo.getName()).isEqualTo(TEST_NOTE_NAME);
+
+        // do one commit with new note
+        String noteNameUser1 = "Note2_User1";
+        createNoteInLocalRepo(noteNameUser1, USER1.getUser());
+        NotebookRepoWithVersionControl.Revision revision = gitHubNotebookRepo.checkpoint(".", "Commit Note2 User 1", USER1);
+        list = gitHubNotebookRepo.list(USER1);
+
+        // Assert that branch contains two notes
+        assertThat(list.size()).isEqualTo(2);
+        noteInfo = list.get(1);
+        assertThat(noteInfo).isNotNull();
+        assertThat(noteInfo.getId()).isNotEqualTo(TEST_NOTE_ID);
+        assertThat(noteInfo.getName()).isEqualTo(noteNameUser1);
+
+        // Merge branch to master
+        gitHubNotebookRepo.mergeToBranch("master", USER1);
+
+        // Log in as user 2
+        list = gitHubNotebookRepo.list(USER2);
+
+        // Assert that branch contains two notes
+        assertThat(list.size()).isEqualTo(2);
+        noteInfo = list.get(1);
+        assertThat(noteInfo).isNotNull();
+        assertThat(noteInfo.getId()).isNotEqualTo(TEST_NOTE_ID);
+        assertThat(noteInfo.getName()).isEqualTo(noteNameUser1);
+
+        // do one commit with new note
+        String noteNameUser2 = "Note2_User2";
+        createNoteInLocalRepo(noteNameUser2, USER2.getUser());
+        gitHubNotebookRepo.checkpoint(".", "Commit Note2 User 2", USER2);
+        list = gitHubNotebookRepo.list(USER2);
+
+        // Assert that branch contains three notes
+        assertThat(list.size()).isEqualTo(3);
+
+        // Merge branch to master
+        gitHubNotebookRepo.mergeToBranch("master", USER2);
+
+        // Log in as user 1
+        list = gitHubNotebookRepo.list(USER1);
+
+        // Assert that branch contains three notes
+        assertThat(list.size()).isEqualTo(3);
+    }
+
+    private void createNoteInLocalRepo(String noteName, String username) throws IOException {
         JsonObject note = new JsonObject();
         note.addProperty("name", noteName);
         note.addProperty("id", createRandomID());
         try (FileWriter file =
                      new FileWriter(
-                             Joiner.on(File.separator).join(tmpDir, localNotebookDirName, USER1.getUser())
+                             Joiner.on(File.separator).join(tmpDir, localNotebookDirName, username)
                                      + File.separator + noteName + ".json")) {
             file.write(note.toString());
         }
@@ -164,6 +219,6 @@ class GitBranchRepositoryBranchLogicTest {
                 .filter(i -> (i <= 57 || i >= 65) && (i <= 90 || i >= 97))
                 .limit(targetStringLength)
                 .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
-                .toString();
+                .toString().toUpperCase();
     }
 }
