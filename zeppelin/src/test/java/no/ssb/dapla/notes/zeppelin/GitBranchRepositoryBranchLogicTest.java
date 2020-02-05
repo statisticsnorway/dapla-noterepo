@@ -83,6 +83,7 @@ class GitBranchRepositoryBranchLogicTest {
         System.setProperty(GitBranchRepository.Configuration.CONFIG_GIT_URL_NAME,
                 remoteTestNoteDir + File.separator + ".git");
         System.setProperty(GitBranchRepository.Configuration.CONFIG_GIT_USERNAME_NAME, "token");
+        System.setProperty(GitBranchRepository.Configuration.CONFIG_GIT_PASSWORD_NAME, "password");
 
         gitHubNotebookRepo = new GitBranchRepository(conf);
 
@@ -105,6 +106,15 @@ class GitBranchRepositoryBranchLogicTest {
                 }
             }
         });
+    }
+
+    /**
+     * Assert that an anonymous user gets an empty list
+     */
+    @Test
+    public void testAnonymousLogin() throws IOException {
+        List<NoteInfo> list = gitHubNotebookRepo.list(new AuthenticationInfo("anonymous"));
+        assertThat(list.size()).isEqualTo(0);
     }
 
     /**

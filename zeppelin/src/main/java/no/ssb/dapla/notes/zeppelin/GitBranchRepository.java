@@ -171,6 +171,8 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
                 git.push()
                         .add(userBranch)
                         .setRefSpecs( new RefSpec( user+":"+user ))
+                        .setCredentialsProvider(new UsernamePasswordCredentialsProvider(
+                                conf.getGitUserName(), conf.getGitPassword()))
                         .call();
 
                 // Add config for tracking remote user branch
@@ -196,8 +198,7 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
         }
     }
 
-    private Git
-    getRepository(AuthenticationInfo subject) throws IOException {
+    private Git getRepository(AuthenticationInfo subject) throws IOException {
         Git userGit = perUserRepositories.computeIfAbsent(subject.getUser(), this::getOrCreateBranch);
 
         try {
@@ -219,7 +220,11 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
                 userGit.checkout().setName(subject.getUser()).call();
 
                 userGit.pull().setRebase(true).setRemote("origin").setRemoteBranchName("master").call();
-                userGit.push().add(repo.findRef(subject.getUser())).call();
+                userGit.push()
+                        .add(repo.findRef(subject.getUser()))
+                        .setCredentialsProvider(new UsernamePasswordCredentialsProvider(
+                                conf.getGitUserName(), conf.getGitPassword()))
+                        .call();
             }
         } catch (GitAPIException e) {
             log.error("Failed rebasing from master", e);
@@ -232,7 +237,11 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
         Git userGit = getRepository(subject);
         userGit.checkout().setName(branchToMergeTo).setCreateBranch(false).call();
         MergeResult mergeResult = userGit.merge().include(userGit.getRepository().findRef(subject.getUser())).call();
-        userGit.push().add(userGit.getRepository().findRef(branchToMergeTo)).call();
+        userGit.push()
+                .add(userGit.getRepository().findRef(branchToMergeTo))
+                .setCredentialsProvider(new UsernamePasswordCredentialsProvider(
+                        conf.getGitUserName(), conf.getGitPassword()))
+                .call();
         return mergeResult;
     }
 
@@ -254,7 +263,11 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
                     .call();
 
             // Push local branch to remote
-            userGit.push().add(userGit.getRepository().findRef(subject.getUser())).call();
+            userGit.push()
+                    .add(userGit.getRepository().findRef(subject.getUser()))
+                    .setCredentialsProvider(new UsernamePasswordCredentialsProvider(
+                            conf.getGitUserName(), conf.getGitPassword()))
+                    .call();
             return toRevision(commit);
         } catch (GitAPIException e) {
             throw new IOException("Git error: " + e.getMessage(), e);
@@ -344,9 +357,13 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
 
     @Override
     public List<NoteInfo> list(AuthenticationInfo subject) throws IOException {
+        List<NoteInfo> list = new ArrayList<>();
+
+        // Return empty list if user is anonymous
+        if(subject.getUser().equals("anonymous")) return list;
+
         // Recursively walk the files to build the list.
         Path rootDir = getRepository(subject).getRepository().getWorkTree().toPath();
-        List<NoteInfo> list = new ArrayList<>();
         Iterator<Path> it = Files.walk(rootDir).filter(Files::isRegularFile).filter(file -> !file.toString().contains(".git")).iterator();
         while (it.hasNext()) {
             Path next = it.next();
