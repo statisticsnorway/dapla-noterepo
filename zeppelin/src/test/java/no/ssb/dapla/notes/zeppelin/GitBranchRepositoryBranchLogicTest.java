@@ -5,7 +5,6 @@ import com.google.gson.JsonObject;
 import org.apache.commons.io.FileUtils;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.notebook.NoteInfo;
-import org.apache.zeppelin.notebook.repo.NotebookRepoWithVersionControl;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
@@ -124,8 +123,12 @@ class GitBranchRepositoryBranchLogicTest {
     @Test
     public void testBranchCreation() throws Exception {
 
+        Repository user1Repo = gitHubNotebookRepo.getRepository(USER1).getRepository();
+        Repository user2Repo = gitHubNotebookRepo.getRepository(USER2).getRepository();
+
         // Assert that a branch is created for the user and that it contains one note
         List<NoteInfo> list = gitHubNotebookRepo.list(USER1);
+        assertThat(user1Repo.getBranch()).isEqualTo(USER1.getUser());
         assertThat(list.size()).isEqualTo(1);
         NoteInfo noteInfo = list.get(0);
         assertThat(noteInfo).isNotNull();
@@ -137,6 +140,7 @@ class GitBranchRepositoryBranchLogicTest {
         createNoteInLocalRepo(noteName, USER1.getUser());
         gitHubNotebookRepo.checkpoint(".", "Commit Note2", USER1);
         list = gitHubNotebookRepo.list(USER1);
+        assertThat(user1Repo.getBranch()).isEqualTo(USER1.getUser());
         assertThat(list.size()).isEqualTo(2);
         noteInfo = list.get(1);
         assertThat(noteInfo).isNotNull();
@@ -145,6 +149,7 @@ class GitBranchRepositoryBranchLogicTest {
 
         // Assert that a new user gets a new branch from master
         list = gitHubNotebookRepo.list(USER2);
+        assertThat(user2Repo.getBranch()).isEqualTo(USER2.getUser());
         assertThat(list.size()).isEqualTo(1);
         noteInfo = list.get(0);
         assertThat(noteInfo).isNotNull();
@@ -154,8 +159,12 @@ class GitBranchRepositoryBranchLogicTest {
 
     @Test
     public void testRebaseAfterMerge() throws Exception{
+        Repository user1Repo = gitHubNotebookRepo.getRepository(USER1).getRepository();
+        Repository user2Repo = gitHubNotebookRepo.getRepository(USER2).getRepository();
+
         // Log in as user 1
         List<NoteInfo> list = gitHubNotebookRepo.list(USER1);
+        assertThat(user1Repo.getBranch()).isEqualTo(USER1.getUser());
         assertThat(list.size()).isEqualTo(1);
         NoteInfo noteInfo = list.get(0);
         assertThat(noteInfo).isNotNull();
@@ -165,8 +174,9 @@ class GitBranchRepositoryBranchLogicTest {
         // do one commit with new note
         String noteNameUser1 = "Note2_User1";
         createNoteInLocalRepo(noteNameUser1, USER1.getUser());
-        NotebookRepoWithVersionControl.Revision revision = gitHubNotebookRepo.checkpoint(".", "Commit Note2 User 1", USER1);
+        gitHubNotebookRepo.checkpoint(".", "Commit Note2 User 1", USER1);
         list = gitHubNotebookRepo.list(USER1);
+        assertThat(user1Repo.getBranch()).isEqualTo(USER1.getUser());
 
         // Assert that branch contains two notes
         assertThat(list.size()).isEqualTo(2);
@@ -174,12 +184,15 @@ class GitBranchRepositoryBranchLogicTest {
         assertThat(noteInfo).isNotNull();
         assertThat(noteInfo.getId()).isNotEqualTo(TEST_NOTE_ID);
         assertThat(noteInfo.getName()).isEqualTo(noteNameUser1);
+        assertThat(user1Repo.getBranch()).isEqualTo(USER1.getUser());
 
         // Merge branch to master
         gitHubNotebookRepo.mergeToBranch("master", USER1);
+        assertThat(user1Repo.getBranch()).isEqualTo("master"); // branch should be master after merge
 
         // Log in as user 2
         list = gitHubNotebookRepo.list(USER2);
+        assertThat(user2Repo.getBranch()).isEqualTo(USER2.getUser());
 
         // Assert that branch contains two notes
         assertThat(list.size()).isEqualTo(2);
@@ -193,15 +206,18 @@ class GitBranchRepositoryBranchLogicTest {
         createNoteInLocalRepo(noteNameUser2, USER2.getUser());
         gitHubNotebookRepo.checkpoint(".", "Commit Note2 User 2", USER2);
         list = gitHubNotebookRepo.list(USER2);
+        assertThat(user2Repo.getBranch()).isEqualTo(USER2.getUser());
 
         // Assert that branch contains three notes
         assertThat(list.size()).isEqualTo(3);
 
         // Merge branch to master
         gitHubNotebookRepo.mergeToBranch("master", USER2);
+        assertThat(user1Repo.getBranch()).isEqualTo("master"); // branch should be master after merge
 
         // Log in as user 1
         list = gitHubNotebookRepo.list(USER1);
+        assertThat(user1Repo.getBranch()).isEqualTo(USER1.getUser());
 
         // Assert that branch contains three notes
         assertThat(list.size()).isEqualTo(3);

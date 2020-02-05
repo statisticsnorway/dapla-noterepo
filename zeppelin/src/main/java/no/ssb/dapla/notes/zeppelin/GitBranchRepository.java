@@ -1,5 +1,6 @@
 package no.ssb.dapla.notes.zeppelin;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.IOUtils;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
@@ -114,6 +115,19 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
     }
 
     /**
+     * Extracts the folder/path for the note
+     * <p/>
+     * The path is included in the name in zeppelin.
+     */
+    static String extractFolder(Note note) {
+        String name = note.getName();
+        if (name.contains("/")) {
+            return name.substring(0, name.lastIndexOf('/'));
+        }
+        return "";
+    }
+
+    /**
      * Extracts the name for the note.
      * <p>
      * The path is included in the name in zeppelin.
@@ -160,12 +174,12 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
 
                 git = cloneCommand.call();
             } else {
-                git = new Git(new FileRepository(userFolder));
+                git = new Git(new FileRepository(userFolder + "/.git"));
             }
 
             // check if user branch exists
             if (git.branchList().call().stream()
-                    .noneMatch(branch -> branch.getName().equals(user))) {
+                    .noneMatch(branch -> branch.getName().endsWith(user))) {
                 // Create branch and push it
                 Ref userBranch = git.branchCreate().setName(user).call();
                 git.push()
@@ -198,11 +212,23 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
         }
     }
 
-    private Git getRepository(AuthenticationInfo subject) throws IOException {
-        Git userGit = perUserRepositories.computeIfAbsent(subject.getUser(), this::getOrCreateBranch);
+    Git getRepository(AuthenticationInfo subject) throws IOException {
+        String username = subject.getUser();
+        Git userGit = perUserRepositories.computeIfAbsent(username, this::getOrCreateBranch);
+        UsernamePasswordCredentialsProvider credentialsProvider = new UsernamePasswordCredentialsProvider(
+                conf.getGitUserName(), conf.getGitPassword());
+        log.info("GIT USER NAME: {}", conf.getGitUserName());
+        log.info("GIT PASSWORD: {}", conf.getGitPassword());
 
         try {
-            userGit.pull().call();
+            userGit.pull().setCredentialsProvider(credentialsProvider).call();
+
+            // we need to checkout master, pull, and then checkout user branch again
+            // to make sure we have remote master HEAD to compare with
+            userGit.checkout().setName("master").call();
+            userGit.pull().setCredentialsProvider(credentialsProvider).call();
+            userGit.checkout().setName(username).call();
+
         } catch (GitAPIException e) {
             throw new IOException("Failed to fetch from remote: " + e.getMessage(), e);
         }
@@ -212,18 +238,17 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
 
         try (RevWalk revWalk = new RevWalk(repo)) {
             RevCommit masterHead = revWalk.parseCommit(repo.resolve("refs/heads/master"));
-            RevCommit userBranchHead = revWalk.parseCommit(repo.findRef(subject.getUser()).getObjectId());
+            RevCommit userBranchHead = revWalk.parseCommit(repo.findRef(username).getObjectId());
 
             // Check if master head is unequal to user branch head and user branch is fully merged
             if (!masterHead.equals(userBranchHead) && revWalk.isMergedInto(userBranchHead, masterHead)) {
                 // Check out user branch and merge from master
-                userGit.checkout().setName(subject.getUser()).call();
+                userGit.checkout().setName(username).call();
 
                 userGit.pull().setRebase(true).setRemote("origin").setRemoteBranchName("master").call();
                 userGit.push()
-                        .add(repo.findRef(subject.getUser()))
-                        .setCredentialsProvider(new UsernamePasswordCredentialsProvider(
-                                conf.getGitUserName(), conf.getGitPassword()))
+                        .add(repo.findRef(username))
+                        .setCredentialsProvider(credentialsProvider)
                         .call();
             }
         } catch (GitAPIException e) {
@@ -254,7 +279,8 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
             // TODO(arild): branch -d to delete merged branches.
             //   if success recreate from HEAD
             //   if failure pull from remote.
-            userGit.add().addFilepattern(pattern).call();
+            Note noteToCommit = get(pattern, subject);
+            userGit.add().addFilepattern(noteToCommit.getName()).call();
             RevCommit commit = userGit.commit()
                     .setMessage(commitMessage)
                     .setAuthor(extractName(subject), extractEmail(subject))
@@ -359,6 +385,9 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
     public List<NoteInfo> list(AuthenticationInfo subject) throws IOException {
         List<NoteInfo> list = new ArrayList<>();
 
+        // TODO list is cached by Zeppelin, which means that when you refresh the list for one user,
+        //  all logged in users get the same list. This needs to be handled.
+
         // Return empty list if user is anonymous
         if(subject.getUser().equals("anonymous")) return list;
 
@@ -383,7 +412,7 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
         NoteInfo info = list(subject).stream()
                 .filter(noteInfo -> noteId.equals(noteInfo.getId()))
                 .findFirst().orElseThrow(() -> new IOException("could not find note with id " + noteId));
-        return getNote(Paths.get(info.getName()));
+        return getNote(Paths.get(getRepository(subject).getRepository().getWorkTree().toPath().toString(), info.getName()));
     }
 
     @Override
@@ -395,11 +424,12 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
         } else {
 
             Path userRepository = getRepository(subject).getRepository().getWorkTree().toPath();
-            Path fileName = Paths.get(extractName(note));
+            Path fileName = Paths.get(note.getName());
+            Path noteFolder = Paths.get(extractFolder(note));
 
-            LOGGER.info("Saving note {} to {} / {}", note.getId(), userRepository, fileName);
+            LOGGER.info("Saving note {} to {}/{}", note.getId(), userRepository, fileName);
             LOGGER.info("Note:{}", note.toJson());
-            Files.createDirectories(userRepository);
+            Files.createDirectories(Paths.get(Joiner.on(File.separator).join(userRepository, noteFolder)));
             String json = note.toJson();
             try (BufferedWriter out = new BufferedWriter(new FileWriter(userRepository.resolve(fileName).toFile()))) {
                 out.write(json);
