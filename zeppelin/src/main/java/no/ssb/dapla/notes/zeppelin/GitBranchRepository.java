@@ -419,6 +419,8 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
     public void save(Note note, AuthenticationInfo subject) throws IOException {
         // Strange thing; when creating the note this method is called twice. First
         // without the name.
+        // TODO automatically commit and push notes moved to trash?
+        // TODO notes sent to trash are copied to trash folder, thus not removed from original location
         if (note.getName().equals(note.getId())) {
             LOGGER.debug("ignoring the note {}", note);
         } else {

@@ -1,9 +1,9 @@
 package no.ssb.dapla.notes.zeppelin;
 
 import com.google.common.base.Joiner;
-import com.google.gson.JsonObject;
 import org.apache.commons.io.FileUtils;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
+import org.apache.zeppelin.notebook.Note;
 import org.apache.zeppelin.notebook.NoteInfo;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.eclipse.jgit.api.Git;
@@ -15,7 +15,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -23,6 +22,7 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,7 +57,7 @@ class GitBranchRepositoryBranchLogicTest {
                         GitBranchRepositoryTest.class.getResource(
                                 Joiner.on(File.separator).join("", TEST_NOTE_ID) + File.separator + "note.json"
                         ).getFile()
-                ), new File(remoteTestNoteDir + TEST_NOTE_NAME + ".json")
+                ), new File(remoteTestNoteDir + TEST_NOTE_NAME)
         );
 
         // Create the fake remote Git repository
@@ -137,15 +137,17 @@ class GitBranchRepositoryBranchLogicTest {
 
         // Assert that a committed note is present in local branch
         String noteName = "Note2";
-        createNoteInLocalRepo(noteName, USER1.getUser());
-        gitHubNotebookRepo.checkpoint(".", "Commit Note2", USER1);
+        Note note = createNote(noteName, USER1.getUser());
+        gitHubNotebookRepo.save(note, USER1);
+        gitHubNotebookRepo.checkpoint(note.getId(), "Commit Note2", USER1);
         list = gitHubNotebookRepo.list(USER1);
         assertThat(user1Repo.getBranch()).isEqualTo(USER1.getUser());
         assertThat(list.size()).isEqualTo(2);
-        noteInfo = list.get(1);
-        assertThat(noteInfo).isNotNull();
-        assertThat(noteInfo.getId()).isNotEqualTo(TEST_NOTE_ID);
-        assertThat(noteInfo.getName()).isEqualTo(noteName);
+        Optional<NoteInfo> newNoteOptional = list.stream().filter(n -> n.getId().equals(n.getId())).findFirst();
+        assertThat(newNoteOptional.isPresent()).isTrue();
+        NoteInfo newNote = newNoteOptional.get();
+        assertThat(newNote.getId()).isEqualTo(note.getId());
+        assertThat(newNote.getName()).isEqualTo(noteName);
 
         // Assert that a new user gets a new branch from master
         list = gitHubNotebookRepo.list(USER2);
@@ -173,17 +175,19 @@ class GitBranchRepositoryBranchLogicTest {
 
         // do one commit with new note
         String noteNameUser1 = "Note2_User1";
-        createNoteInLocalRepo(noteNameUser1, USER1.getUser());
-        gitHubNotebookRepo.checkpoint(".", "Commit Note2 User 1", USER1);
+        Note note = createNote(noteNameUser1, USER1.getUser());
+        gitHubNotebookRepo.save(note, USER1);
+        gitHubNotebookRepo.checkpoint(note.getId(), "Commit Note2 User 1", USER1);
         list = gitHubNotebookRepo.list(USER1);
         assertThat(user1Repo.getBranch()).isEqualTo(USER1.getUser());
 
         // Assert that branch contains two notes
         assertThat(list.size()).isEqualTo(2);
-        noteInfo = list.get(1);
-        assertThat(noteInfo).isNotNull();
-        assertThat(noteInfo.getId()).isNotEqualTo(TEST_NOTE_ID);
-        assertThat(noteInfo.getName()).isEqualTo(noteNameUser1);
+        Optional<NoteInfo> newNoteOptional = list.stream().filter(n -> n.getId().equals(n.getId())).findFirst();
+        assertThat(newNoteOptional.isPresent()).isTrue();
+        NoteInfo newNote = newNoteOptional.get();
+        assertThat(newNote.getId()).isEqualTo(note.getId());
+        assertThat(newNote.getName()).isEqualTo(noteNameUser1);
         assertThat(user1Repo.getBranch()).isEqualTo(USER1.getUser());
 
         // Merge branch to master
@@ -196,15 +200,18 @@ class GitBranchRepositoryBranchLogicTest {
 
         // Assert that branch contains two notes
         assertThat(list.size()).isEqualTo(2);
-        noteInfo = list.get(1);
-        assertThat(noteInfo).isNotNull();
-        assertThat(noteInfo.getId()).isNotEqualTo(TEST_NOTE_ID);
-        assertThat(noteInfo.getName()).isEqualTo(noteNameUser1);
+        newNoteOptional = list.stream().filter(n -> n.getId().equals(n.getId())).findFirst();
+        assertThat(newNoteOptional.isPresent()).isTrue();
+        newNote = newNoteOptional.get();
+        assertThat(newNote.getId()).isEqualTo(note.getId());
+        assertThat(newNote.getName()).isEqualTo(noteNameUser1);
+        assertThat(user2Repo.getBranch()).isEqualTo(USER2.getUser());
 
         // do one commit with new note
         String noteNameUser2 = "Note2_User2";
-        createNoteInLocalRepo(noteNameUser2, USER2.getUser());
-        gitHubNotebookRepo.checkpoint(".", "Commit Note2 User 2", USER2);
+        note = createNote(noteNameUser2, USER2.getUser());
+        gitHubNotebookRepo.save(note, USER2);
+        gitHubNotebookRepo.checkpoint(note.getId(), "Commit Note2 User 2", USER2);
         list = gitHubNotebookRepo.list(USER2);
         assertThat(user2Repo.getBranch()).isEqualTo(USER2.getUser());
 
@@ -223,16 +230,10 @@ class GitBranchRepositoryBranchLogicTest {
         assertThat(list.size()).isEqualTo(3);
     }
 
-    private void createNoteInLocalRepo(String noteName, String username) throws IOException {
-        JsonObject note = new JsonObject();
-        note.addProperty("name", noteName);
-        note.addProperty("id", createRandomID());
-        try (FileWriter file =
-                     new FileWriter(
-                             Joiner.on(File.separator).join(tmpDir, localNotebookDirName, username)
-                                     + File.separator + noteName + ".json")) {
-            file.write(note.toString());
-        }
+    private Note createNote(String noteName, String username) {
+        Note note = new Note().getUserNote(username);
+        note.setName(noteName);
+        return note;
     }
 
     private String createRandomID() {
