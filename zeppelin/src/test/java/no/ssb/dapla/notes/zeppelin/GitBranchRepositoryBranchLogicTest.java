@@ -7,6 +7,7 @@ import org.apache.zeppelin.notebook.Note;
 import org.apache.zeppelin.notebook.NoteInfo;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -24,6 +25,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -230,14 +232,60 @@ class GitBranchRepositoryBranchLogicTest {
         assertThat(list.size()).isEqualTo(3);
     }
 
+    /**
+     * Assert that when a note is deleted, the note is removed from its original location
+     * and placed in the "~Trash" folder and that both the Trash folder and the note inside
+     * is untracked
+     */
     @Test
-    public void testDeleteNote() {
-        // TODO
-        //  create note
-        //  commit note
-        //  delete note
-        //  assert that note is in ~Trash and only there
-        //  assert that ~Trash is pushed to remote
+    public void testDeleteNote() throws IOException, GitAPIException {
+
+        Git user1Git = gitHubNotebookRepo.getRepository(USER1);
+        Repository user1Repo = user1Git.getRepository();
+
+        // Log in as user 1
+        List<NoteInfo> list = gitHubNotebookRepo.list(USER1);
+        assertThat(user1Repo.getBranch()).isEqualTo(USER1.getUser());
+        assertThat(list.size()).isEqualTo(1);
+        NoteInfo noteInfo = list.get(0);
+        assertThat(noteInfo).isNotNull();
+        assertThat(noteInfo.getId()).isEqualTo(TEST_NOTE_ID);
+        assertThat(noteInfo.getName()).isEqualTo(TEST_NOTE_NAME);
+
+        // do one commit with new note
+        String noteNameUser1 = "Note2_User1";
+        Note note = createNote(noteNameUser1, USER1.getUser());
+        gitHubNotebookRepo.save(note, USER1);
+        gitHubNotebookRepo.checkpoint(note.getId(), "Commit Note2 User 1", USER1);
+        list = gitHubNotebookRepo.list(USER1);
+        assertThat(user1Repo.getBranch()).isEqualTo(USER1.getUser());
+
+        // Assert that branch contains two notes
+        assertThat(list.size()).isEqualTo(2);
+        Optional<NoteInfo> newNoteOptional = list.stream().filter(n -> n.getId().equals(note.getId())).findFirst();
+        assertThat(newNoteOptional.isPresent()).isTrue();
+        NoteInfo newNote = newNoteOptional.get();
+        assertThat(newNote.getId()).isEqualTo(note.getId());
+        assertThat(newNote.getName()).isEqualTo(noteNameUser1);
+        assertThat(user1Repo.getBranch()).isEqualTo(USER1.getUser());
+
+        // Delete note
+        String deletedName = "~Trash/" + noteNameUser1;
+        note.setName(deletedName);
+        gitHubNotebookRepo.save(note, USER1);
+        list = gitHubNotebookRepo.list((USER1));
+        assertThat(list.size()).isEqualTo(2);
+        assertThat(list.stream().anyMatch(n -> n.getName().equals(deletedName))).isTrue();
+
+        // Assert that the Trash folder is untracked
+        Set<String> untrackedFolders = user1Git.status().call().getUntrackedFolders();
+        assertThat(untrackedFolders.size()).isEqualTo(1);
+        assertThat(untrackedFolders.stream().anyMatch(folder -> folder.equals("~Trash"))).isTrue();
+
+        // Assert that the deleted note is untracked
+        Set<String> untracked = user1Git.status().call().getUntracked();
+        assertThat(untracked.size()).isEqualTo(1);
+        assertThat(untracked.stream().anyMatch(file -> file.equals(deletedName))).isTrue();
     }
 
     private Note createNote(String noteName, String username) {
