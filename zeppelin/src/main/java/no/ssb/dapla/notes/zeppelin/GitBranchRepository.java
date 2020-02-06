@@ -2,6 +2,7 @@ package no.ssb.dapla.notes.zeppelin;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.google.gson.JsonSyntaxException;
 import org.apache.commons.io.IOUtils;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.notebook.Note;
@@ -217,8 +218,6 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
         Git userGit = perUserRepositories.computeIfAbsent(username, this::getOrCreateBranch);
         UsernamePasswordCredentialsProvider credentialsProvider = new UsernamePasswordCredentialsProvider(
                 conf.getGitUserName(), conf.getGitPassword());
-        log.info("GIT USER NAME: {}", conf.getGitUserName());
-        log.info("GIT PASSWORD: {}", conf.getGitPassword());
 
         try {
             userGit.pull().setCredentialsProvider(credentialsProvider).call();
@@ -399,8 +398,10 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
             if (!next.toString().contains(".git")) {
                 try {
                     list.add(new NoteInfo(getNote(next)));
+                } catch (JsonSyntaxException ex) {
+                    LOGGER.warn("failed to load {}. Maybe it was not a note?", next);
                 } catch (Exception ex) {
-                    LOGGER.warn("failed to load {}. Maybe it was not a note?", next, ex);
+                    LOGGER.error("failed to load {}.", next, ex);
                 }
             }
         }
