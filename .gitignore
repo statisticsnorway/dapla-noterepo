@@ -2,3 +2,5 @@
 .gradle
 *.iml
 target/
+/notebook-volume
+/notebook-volume/*
