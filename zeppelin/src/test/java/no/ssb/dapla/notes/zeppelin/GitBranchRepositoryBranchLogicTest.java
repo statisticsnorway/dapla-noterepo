@@ -230,6 +230,16 @@ class GitBranchRepositoryBranchLogicTest {
         assertThat(list.size()).isEqualTo(3);
     }
 
+    @Test
+    public void testDeleteNote() {
+        // TODO
+        //  create note
+        //  commit note
+        //  delete note
+        //  assert that note is in ~Trash and only there
+        //  assert that ~Trash is pushed to remote
+    }
+
     private Note createNote(String noteName, String username) {
         Note note = new Note().getUserNote(username);
         note.setName(noteName);

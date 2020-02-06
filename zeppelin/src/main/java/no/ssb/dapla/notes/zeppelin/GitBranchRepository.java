@@ -37,6 +37,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -148,6 +149,10 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
      */
     static List<String> extractNamespace(Note note) {
         return Arrays.asList(note.getFolderId().split("/"));
+    }
+
+    static boolean noteIsDeleted(Note note) {
+        return note.getName().startsWith("~Trash");
     }
 
     Path getUserFolder(AuthenticationInfo subject) {
@@ -274,29 +279,30 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
         Git userGit = getRepository(subject);
         try {
             // TODO: Should use git alternates at some point.
-            //
-            // TODO(arild): branch -d to delete merged branches.
-            //   if success recreate from HEAD
-            //   if failure pull from remote.
             Note noteToCommit = get(pattern, subject);
             userGit.add().addFilepattern(noteToCommit.getName()).call();
-            RevCommit commit = userGit.commit()
-                    .setMessage(commitMessage)
-                    .setAuthor(extractName(subject), extractEmail(subject))
-                    .setCommitter("zeppelin",
-                            "zeppelin@" + InetAddress.getLocalHost().getHostName())
-                    .call();
 
-            // Push local branch to remote
-            userGit.push()
-                    .add(userGit.getRepository().findRef(subject.getUser()))
-                    .setCredentialsProvider(new UsernamePasswordCredentialsProvider(
-                            conf.getGitUserName(), conf.getGitPassword()))
-                    .call();
-            return toRevision(commit);
+            return checkpoint(userGit, commitMessage, subject);
         } catch (GitAPIException e) {
             throw new IOException("Git error: " + e.getMessage(), e);
         }
+    }
+
+    private Revision checkpoint(Git userGit, String commitMessage, AuthenticationInfo subject) throws GitAPIException, IOException {
+        RevCommit commit = userGit.commit()
+                .setMessage(commitMessage)
+                .setAuthor(extractName(subject), extractEmail(subject))
+                .setCommitter("zeppelin",
+                        "zeppelin@" + InetAddress.getLocalHost().getHostName())
+                .call();
+
+        // Push local branch to remote
+        userGit.push()
+                .add(userGit.getRepository().findRef(subject.getUser()))
+                .setCredentialsProvider(new UsernamePasswordCredentialsProvider(
+                        conf.getGitUserName(), conf.getGitPassword()))
+                .call();
+        return toRevision(commit);
     }
 
     @Override
@@ -425,8 +431,8 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
         if (note.getName().equals(note.getId())) {
             LOGGER.debug("ignoring the note {}", note);
         } else {
-
-            Path userRepository = getRepository(subject).getRepository().getWorkTree().toPath();
+            Git userGit = getRepository(subject);
+            Path userRepository = userGit.getRepository().getWorkTree().toPath();
             Path fileName = Paths.get(note.getName());
             Path noteFolder = Paths.get(extractFolder(note));
 
@@ -437,12 +443,24 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
             try (BufferedWriter out = new BufferedWriter(new FileWriter(userRepository.resolve(fileName).toFile()))) {
                 out.write(json);
             }
+
+            if (noteIsDeleted(note)) {
+                // TODO should we commit/push ~Trash automatically? For now, we just push the deletion
+                //  of the file from the original location
+                Files.delete(Paths.get(userRepository.toString(), extractName(note)));
+                try {
+                    userGit.rm().addFilepattern(extractName(note)).call();
+                    checkpoint(userGit, "Delete note " + extractName(note), subject);
+                } catch (GitAPIException e) {
+                    log.error("Failed to add deletion of note {} to the index", note, e);
+                }
+            }
         }
     }
 
     @Override
     public void remove(String noteId, AuthenticationInfo subject) throws IOException {
-
+        log.info("DELETING NOTE"); // TODO when is this used?
     }
 
     @Override
