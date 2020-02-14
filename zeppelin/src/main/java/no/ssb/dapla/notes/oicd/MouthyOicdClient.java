@@ -15,27 +15,49 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * Tokens are saved in-memory and will happily be given to whomever asks for
  * them. You have been warned.
+ * <p>
+ * One should set it up in the shiro configuration file as follow:
+ * <pre>
+ * keycloakOidcClient = org.pac4j.oidc.client.KeycloakOidcClient
+ * keycloakOidcClient.name = keycloakOidcClient
+ * keycloakOidcClient.configuration = $oidcConfig
+ * keycloakOidcClient.authorizationGenerator = $roleAdminAuthGenerator
+ *
+ * mouthyOicdClient = no.ssb.dapla.notes.oicd.MouthyOicdClient
+ * mouthyOicdClient.delegate = $keycloakOidcClient
+ *
+ * clients = org.pac4j.core.client.Clients
+ * clients.callbackUrl = http://localhost:8080/api/callback
+ * clients.clients = $mouthyOicdClient
+ * </pre>
  */
-public class MouthyOicdClient<U extends OidcProfile, V extends OidcConfiguration> extends OidcClient<U, V> {
+public class MouthyOicdClient<U extends OidcProfile, V extends OidcConfiguration> extends ForwardingOicdClient<U, V> {
 
     private OidcClient<U, V> delegate;
-    private Map<String, OidcCredentials> credentials = new ConcurrentHashMap<>();
+    private Map<String, OidcCredentials> credentialsMap = new ConcurrentHashMap<>();
 
-    @Override
-    public CredentialsExtractor<OidcCredentials> getCredentialsExtractor() {
-        return new CredentialsExtractor<OidcCredentials>() {
-            @Override
-            public OidcCredentials extract(WebContext webContext) {
-                OidcCredentials credentials = getCredentialsExtractor().extract(webContext);
-                return credentials;
-            }
-        };
+    public void setDelegate(OidcClient<U, V> delegate) {
+        this.delegate = delegate;
     }
 
     @Override
-    protected OidcCredentials retrieveCredentials(WebContext context) {
-        delegate.getCredentials(context);
-        return null;
+    OidcClient<U, V> delegate() {
+        return delegate;
+    }
+
+    @Override
+    public CredentialsExtractor<OidcCredentials> getCredentialsExtractor() {
+        return new CredentialsThief();
+    }
+
+    private class CredentialsThief implements CredentialsExtractor<OidcCredentials> {
+
+        @Override
+        public OidcCredentials extract(WebContext webContext) {
+            OidcCredentials credentials = getCredentialsExtractor().extract(webContext);
+            credentialsMap.put(credentials.getUserProfile().getUsername(), credentials);
+            return credentials;
+        }
     }
 
 }
