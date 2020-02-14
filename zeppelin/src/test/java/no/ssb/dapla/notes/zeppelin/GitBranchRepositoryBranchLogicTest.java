@@ -22,7 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
@@ -86,7 +86,8 @@ class GitBranchRepositoryBranchLogicTest {
         System.setProperty(GitBranchRepository.Configuration.CONFIG_GIT_USERNAME_NAME, "token");
         System.setProperty(GitBranchRepository.Configuration.CONFIG_GIT_PASSWORD_NAME, "password");
 
-        gitHubNotebookRepo = new GitBranchRepository(conf);
+        gitHubNotebookRepo = new GitBranchRepository();
+        gitHubNotebookRepo.init(conf);
 
     }
 
@@ -114,7 +115,7 @@ class GitBranchRepositoryBranchLogicTest {
      */
     @Test
     public void testAnonymousLogin() throws IOException {
-        List<NoteInfo> list = gitHubNotebookRepo.list(new AuthenticationInfo("anonymous"));
+        Map<String, NoteInfo> list = gitHubNotebookRepo.list(new AuthenticationInfo("anonymous"));
         assertThat(list.size()).isEqualTo(0);
     }
 
@@ -129,36 +130,36 @@ class GitBranchRepositoryBranchLogicTest {
         Repository user2Repo = gitHubNotebookRepo.getRepository(USER2).getRepository();
 
         // Assert that a branch is created for the user and that it contains one note
-        List<NoteInfo> list = gitHubNotebookRepo.list(USER1);
+        Map<String, NoteInfo> list = gitHubNotebookRepo.list(USER1);
         assertThat(user1Repo.getBranch()).isEqualTo(USER1.getUser());
         assertThat(list.size()).isEqualTo(1);
-        NoteInfo noteInfo = list.get(0);
+        NoteInfo noteInfo = list.get(TEST_NOTE_ID);
         assertThat(noteInfo).isNotNull();
         assertThat(noteInfo.getId()).isEqualTo(TEST_NOTE_ID);
-        assertThat(noteInfo.getName()).isEqualTo(TEST_NOTE_NAME);
+        assertThat(noteInfo.getNoteName()).isEqualTo(TEST_NOTE_NAME);
 
         // Assert that a committed note is present in local branch
         String noteName = "Note2";
         Note note = createNote(noteName, USER1.getUser());
         gitHubNotebookRepo.save(note, USER1);
-        gitHubNotebookRepo.checkpoint(note.getId(), "Commit Note2", USER1);
+        gitHubNotebookRepo.checkpoint(note.getId(), note.getPath(), "Commit Note2", USER1);
         list = gitHubNotebookRepo.list(USER1);
         assertThat(user1Repo.getBranch()).isEqualTo(USER1.getUser());
         assertThat(list.size()).isEqualTo(2);
-        Optional<NoteInfo> newNoteOptional = list.stream().filter(n -> n.getId().equals(note.getId())).findFirst();
+        Optional<NoteInfo> newNoteOptional = list.values().stream().filter(n -> n.getId().equals(note.getId())).findFirst();
         assertThat(newNoteOptional.isPresent()).isTrue();
         NoteInfo newNote = newNoteOptional.get();
         assertThat(newNote.getId()).isEqualTo(note.getId());
-        assertThat(newNote.getName()).isEqualTo(noteName);
+        assertThat(newNote.getNoteName()).isEqualTo(noteName);
 
         // Assert that a new user gets a new branch from master
         list = gitHubNotebookRepo.list(USER2);
         assertThat(user2Repo.getBranch()).isEqualTo(USER2.getUser());
         assertThat(list.size()).isEqualTo(1);
-        noteInfo = list.get(0);
+        noteInfo = list.get(TEST_NOTE_ID);
         assertThat(noteInfo).isNotNull();
         assertThat(noteInfo.getId()).isEqualTo(TEST_NOTE_ID);
-        assertThat(noteInfo.getName()).isEqualTo(TEST_NOTE_NAME);
+        assertThat(noteInfo.getNoteName()).isEqualTo(TEST_NOTE_NAME);
     }
 
     @Test
@@ -167,29 +168,29 @@ class GitBranchRepositoryBranchLogicTest {
         Repository user2Repo = gitHubNotebookRepo.getRepository(USER2).getRepository();
 
         // Log in as user 1
-        List<NoteInfo> list = gitHubNotebookRepo.list(USER1);
+        Map<String, NoteInfo> list = gitHubNotebookRepo.list(USER1);
         assertThat(user1Repo.getBranch()).isEqualTo(USER1.getUser());
         assertThat(list.size()).isEqualTo(1);
-        NoteInfo noteInfo = list.get(0);
+        NoteInfo noteInfo = list.get(TEST_NOTE_ID);
         assertThat(noteInfo).isNotNull();
         assertThat(noteInfo.getId()).isEqualTo(TEST_NOTE_ID);
-        assertThat(noteInfo.getName()).isEqualTo(TEST_NOTE_NAME);
+        assertThat(noteInfo.getNoteName()).isEqualTo(TEST_NOTE_NAME);
 
         // do one commit with new note
         String noteNameUser1 = "Note2_User1";
         final Note note = createNote(noteNameUser1, USER1.getUser());
         gitHubNotebookRepo.save(note, USER1);
-        gitHubNotebookRepo.checkpoint(note.getId(), "Commit Note2 User 1", USER1);
+        gitHubNotebookRepo.checkpoint(note.getId(), note.getPath(), "Commit Note2 User 1", USER1);
         list = gitHubNotebookRepo.list(USER1);
         assertThat(user1Repo.getBranch()).isEqualTo(USER1.getUser());
 
         // Assert that branch contains two notes
         assertThat(list.size()).isEqualTo(2);
-        Optional<NoteInfo> newNoteOptional = list.stream().filter(n -> n.getId().equals(note.getId())).findFirst();
+        Optional<NoteInfo> newNoteOptional = list.values().stream().filter(n -> n.getId().equals(note.getId())).findFirst();
         assertThat(newNoteOptional.isPresent()).isTrue();
         NoteInfo newNote = newNoteOptional.get();
         assertThat(newNote.getId()).isEqualTo(note.getId());
-        assertThat(newNote.getName()).isEqualTo(noteNameUser1);
+        assertThat(newNote.getNoteName()).isEqualTo(noteNameUser1);
         assertThat(user1Repo.getBranch()).isEqualTo(USER1.getUser());
 
         // Merge branch to master
@@ -202,18 +203,18 @@ class GitBranchRepositoryBranchLogicTest {
 
         // Assert that branch contains two notes
         assertThat(list.size()).isEqualTo(2);
-        newNoteOptional = list.stream().filter(n -> n.getId().equals(note.getId())).findFirst();
+        newNoteOptional = list.values().stream().filter(n -> n.getId().equals(note.getId())).findFirst();
         assertThat(newNoteOptional.isPresent()).isTrue();
         newNote = newNoteOptional.get();
         assertThat(newNote.getId()).isEqualTo(note.getId());
-        assertThat(newNote.getName()).isEqualTo(noteNameUser1);
+        assertThat(newNote.getNoteName()).isEqualTo(noteNameUser1);
         assertThat(user2Repo.getBranch()).isEqualTo(USER2.getUser());
 
         // do one commit with new note
         String noteNameUser2 = "Note2_User2";
         Note note1User2 = createNote(noteNameUser2, USER2.getUser());
         gitHubNotebookRepo.save(note1User2, USER2);
-        gitHubNotebookRepo.checkpoint(note1User2.getId(), "Commit Note2 User 2", USER2);
+        gitHubNotebookRepo.checkpoint(note1User2.getId(), note1User2.getPath(), "Commit Note2 User 2", USER2);
         list = gitHubNotebookRepo.list(USER2);
         assertThat(user2Repo.getBranch()).isEqualTo(USER2.getUser());
 
@@ -244,38 +245,43 @@ class GitBranchRepositoryBranchLogicTest {
         Repository user1Repo = user1Git.getRepository();
 
         // Log in as user 1
-        List<NoteInfo> list = gitHubNotebookRepo.list(USER1);
+        Map<String, NoteInfo> list = gitHubNotebookRepo.list(USER1);
         assertThat(user1Repo.getBranch()).isEqualTo(USER1.getUser());
         assertThat(list.size()).isEqualTo(1);
-        NoteInfo noteInfo = list.get(0);
+        NoteInfo noteInfo = list.get(TEST_NOTE_ID);
         assertThat(noteInfo).isNotNull();
         assertThat(noteInfo.getId()).isEqualTo(TEST_NOTE_ID);
-        assertThat(noteInfo.getName()).isEqualTo(TEST_NOTE_NAME);
+        assertThat(noteInfo.getNoteName()).isEqualTo(TEST_NOTE_NAME);
 
         // do one commit with new note
         String noteNameUser1 = "Note2_User1";
         Note note = createNote(noteNameUser1, USER1.getUser());
         gitHubNotebookRepo.save(note, USER1);
-        gitHubNotebookRepo.checkpoint(note.getId(), "Commit Note2 User 1", USER1);
+        gitHubNotebookRepo.checkpoint(note.getId(), note.getPath(), "Commit Note2 User 1", USER1);
         list = gitHubNotebookRepo.list(USER1);
         assertThat(user1Repo.getBranch()).isEqualTo(USER1.getUser());
 
         // Assert that branch contains two notes
         assertThat(list.size()).isEqualTo(2);
-        Optional<NoteInfo> newNoteOptional = list.stream().filter(n -> n.getId().equals(note.getId())).findFirst();
+        Optional<NoteInfo> newNoteOptional = list.values().stream().filter(n -> n.getId().equals(note.getId())).findFirst();
         assertThat(newNoteOptional.isPresent()).isTrue();
         NoteInfo newNote = newNoteOptional.get();
         assertThat(newNote.getId()).isEqualTo(note.getId());
-        assertThat(newNote.getName()).isEqualTo(noteNameUser1);
+        assertThat(newNote.getNoteName()).isEqualTo(noteNameUser1);
         assertThat(user1Repo.getBranch()).isEqualTo(USER1.getUser());
 
         // Delete note
-        String deletedName = "~Trash/" + noteNameUser1;
-        note.setName(deletedName);
+//        String deletedName = "~Trash/" + noteNameUser1;
+//        note.setName(deletedName);
+        note.setPath("~Trash" + note.getPath());
         gitHubNotebookRepo.save(note, USER1);
         list = gitHubNotebookRepo.list((USER1));
         assertThat(list.size()).isEqualTo(2);
-        assertThat(list.stream().anyMatch(n -> n.getName().equals(deletedName))).isTrue();
+
+        // Assert that we have only one instance of the deleted note and that it is in the ~Trash folder
+        assertThat(list.values().stream()
+                .filter(n ->n.getNoteName().equals(noteNameUser1) && n.getPath().contains("~Trash"))
+                .count()).isEqualTo(1);
 
         // Assert that the Trash folder is untracked
         Set<String> untrackedFolders = user1Git.status().call().getUntrackedFolders();
@@ -285,7 +291,7 @@ class GitBranchRepositoryBranchLogicTest {
         // Assert that the deleted note is untracked
         Set<String> untracked = user1Git.status().call().getUntracked();
         assertThat(untracked.size()).isEqualTo(1);
-        assertThat(untracked.stream().anyMatch(file -> file.equals(deletedName))).isTrue();
+        assertThat(untracked.stream().anyMatch(file -> file.equals(noteNameUser1))).isTrue();
     }
 
     private Note createNote(String noteName, String username) {

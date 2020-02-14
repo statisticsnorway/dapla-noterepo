@@ -14,6 +14,7 @@ import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.MergeResult;
+import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.diff.DiffEntry;
@@ -37,14 +38,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -69,10 +69,14 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
 
     // Each user branch is kept checked out in their own folder.
     private final Map<String, Git> perUserRepositories = new ConcurrentHashMap<>();
-    private final Configuration conf;
+    private Configuration conf;
 
-    public GitBranchRepository(ZeppelinConfiguration conf) {
-        this.conf = new Configuration(conf);
+    public GitBranchRepository() {
+    }
+
+    @Override
+    public void init(ZeppelinConfiguration zeppelinConfiguration) throws IOException {
+        this.conf = new Configuration(zeppelinConfiguration);
     }
 
     static NotebookRepoWithVersionControl.Revision toRevision(RevCommit commit) {
@@ -117,19 +121,6 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
     }
 
     /**
-     * Extracts the folder/path for the note
-     * <p/>
-     * The path is included in the name in zeppelin.
-     */
-    static String extractFolder(Note note) {
-        String name = note.getName();
-        if (name.contains("/")) {
-            return name.substring(0, name.lastIndexOf('/'));
-        }
-        return "";
-    }
-
-    /**
      * Extracts the name for the note.
      * <p>
      * The path is included in the name in zeppelin.
@@ -148,11 +139,11 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
      * Path is relative and '/' separated.
      */
     static List<String> extractNamespace(Note note) {
-        return Arrays.asList(note.getFolderId().split("/"));
+        return Arrays.asList(note.getPath().split("/"));
     }
 
     static boolean noteIsDeleted(Note note) {
-        return note.getName().startsWith("~Trash");
+        return note.getPath().contains("~Trash");
     }
 
     Path getUserFolder(AuthenticationInfo subject) {
@@ -225,13 +216,18 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
                 conf.getGitUserName(), conf.getGitPassword());
 
         try {
-            userGit.pull().setCredentialsProvider(credentialsProvider).call();
+            Status status = userGit.status().call();
 
-            // we need to checkout master, pull, and then checkout user branch again
-            // to make sure we have remote master HEAD to compare with
-            userGit.checkout().setName("master").call();
-            userGit.pull().setCredentialsProvider(credentialsProvider).call();
-            userGit.checkout().setName(username).call();
+            // If local repo is clean, compare with master
+            if (status.isClean()) {
+                userGit.pull().setCredentialsProvider(credentialsProvider).call();
+
+                // we need to checkout master, pull, and then checkout user branch again
+                // to make sure we have remote master HEAD to compare with
+                userGit.checkout().setName("master").call();
+                userGit.pull().setCredentialsProvider(credentialsProvider).call();
+                userGit.checkout().setName(username).call();
+            }
 
         } catch (GitAPIException e) {
             throw new IOException("Failed to fetch from remote: " + e.getMessage(), e);
@@ -275,14 +271,14 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
     }
 
     @Override
-    public Revision checkpoint(String pattern, String commitMessage, AuthenticationInfo subject) throws IOException {
+    public Revision checkpoint(String noteId, String notePath, String checkpointMsg, AuthenticationInfo subject) throws IOException {
         Git userGit = getRepository(subject);
         try {
             // TODO: Should use git alternates at some point.
-            Note noteToCommit = get(pattern, subject);
+            Note noteToCommit = get(noteId, notePath, subject);
             userGit.add().addFilepattern(noteToCommit.getName()).call();
 
-            return checkpoint(userGit, commitMessage, subject);
+            return checkpoint(userGit, checkpointMsg, subject);
         } catch (GitAPIException e) {
             throw new IOException("Git error: " + e.getMessage(), e);
         }
@@ -306,7 +302,7 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
     }
 
     @Override
-    public Note get(String noteId, String revId, AuthenticationInfo subject) throws IOException {
+    public Note get(String noteId, String notePath, String revId, AuthenticationInfo subject) throws IOException {
         Note note = null;
         RevCommit stash = null;
 
@@ -322,7 +318,7 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
 
             ObjectId head = userGit.getRepository().resolve("HEAD");
             userGit.checkout().setStartPoint(revId).addPath(noteId).call();
-            note = get(noteId, subject);
+            note = get(noteId, notePath, subject);
             userGit.checkout().setStartPoint(head.getName()).addPath(noteId).call();
             if (modified && stash != null) {
                 ObjectId applied = userGit.stashApply().setStashRef(stash.getName()).call();
@@ -338,7 +334,7 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
     }
 
     @Override
-    public List<Revision> revisionHistory(String noteId, AuthenticationInfo subject) {
+    public List<Revision> revisionHistory(String noteId, String notePath, AuthenticationInfo subject) {
         List<Revision> history = Lists.newArrayList();
         log.debug("Listing history for {}:", noteId);
 
@@ -361,7 +357,7 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
     }
 
     @Override
-    public Note setNoteRevision(String noteId, String revId, AuthenticationInfo subject) throws IOException {
+    public Note setNoteRevision(String noteId, String notePath, String revId, AuthenticationInfo subject) throws IOException {
         Note revisionNote = this.get(noteId, revId, subject);
         if (revisionNote != null) {
             this.save(revisionNote, subject);
@@ -369,7 +365,7 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
         return revisionNote;
     }
 
-    private Note getNote(Path notePath) throws IOException {
+    private Note getNote(Path notePath) throws JsonSyntaxException, IOException {
         File file = notePath.normalize().toFile();
         if (file.isDirectory()) {
             throw new IOException(file.getName() + " is a directory");
@@ -380,18 +376,22 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
                 try (InputStream ins = new FileInputStream(file)) {
                     String json = IOUtils.toString(ins, this.conf.getConfiguration()
                             .getString(ZeppelinConfiguration.ConfVars.ZEPPELIN_ENCODING));
-                    return Note.fromJson(json);
+                    Note note;
+                    try {
+                        note = Note.fromJson(json);
+                    } catch (IOException e) {
+                        throw new JsonSyntaxException(e);
+                    }
+                    note.setPath(notePath.toString());
+                    return note;
                 }
             }
         }
     }
 
     @Override
-    public List<NoteInfo> list(AuthenticationInfo subject) throws IOException {
-        List<NoteInfo> list = new ArrayList<>();
-
-        // TODO list is cached by Zeppelin, which means that when you refresh the list for one user,
-        //  all logged in users get the same list. This needs to be handled.
+    public Map<String, NoteInfo> list(AuthenticationInfo subject) throws IOException {
+        Map<String, NoteInfo> list = new HashMap<>();
 
         // Return empty list if user is anonymous
         if(subject.getUser().equals("anonymous")) return list;
@@ -403,7 +403,8 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
             Path next = it.next();
             if (!next.toString().contains(".git")) {
                 try {
-                    list.add(new NoteInfo(getNote(next)));
+                    NoteInfo noteInfo = new NoteInfo(getNote(next));
+                    list.put(noteInfo.getId(), noteInfo);
                 } catch (JsonSyntaxException ex) {
                     LOGGER.warn("failed to load {}. Maybe it was not a note?", next);
                 } catch (Exception ex) {
@@ -415,26 +416,28 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
     }
 
     @Override
-    public Note get(String noteId, AuthenticationInfo subject) throws IOException {
-        NoteInfo info = list(subject).stream()
+    public Note get(String noteId, String notePath, AuthenticationInfo subject) throws IOException {
+        NoteInfo info = list(subject).values().stream()
                 .filter(noteInfo -> noteId.equals(noteInfo.getId()))
                 .findFirst().orElseThrow(() -> new IOException("could not find note with id " + noteId));
-        return getNote(Paths.get(getRepository(subject).getRepository().getWorkTree().toPath().toString(), info.getName()));
+        return getNote(Paths.get(getRepository(subject).getRepository().getWorkTree().toPath().toString(), info.getNoteName()));
     }
+
 
     @Override
     public void save(Note note, AuthenticationInfo subject) throws IOException {
         // Strange thing; when creating the note this method is called twice. First
         // without the name.
         // TODO automatically commit and push notes moved to trash?
-        // TODO notes sent to trash are copied to trash folder, thus not removed from original location
         if (note.getName().equals(note.getId())) {
             LOGGER.debug("ignoring the note {}", note);
         } else {
             Git userGit = getRepository(subject);
+            // TODO can we get the path from conf, instead of fetching the repo, with all that implies?
             Path userRepository = userGit.getRepository().getWorkTree().toPath();
             Path fileName = Paths.get(note.getName());
-            Path noteFolder = Paths.get(extractFolder(note));
+            Path noteFolder = Paths.get(note.getParentPath());
+            // TODO handle folders (including Trash)
 
             LOGGER.info("Saving note {} to {}/{}", note.getId(), userRepository, fileName);
             LOGGER.info("Note:{}", note.toJson());
@@ -456,6 +459,21 @@ public class GitBranchRepository implements NotebookRepoWithVersionControl {
                 }
             }
         }
+    }
+
+    @Override
+    public void move(String s, String s1, String s2, AuthenticationInfo authenticationInfo) throws IOException {
+        log.info("MOVING NOTE");
+    }
+
+    @Override
+    public void move(String s, String s1, AuthenticationInfo authenticationInfo) throws IOException {
+        log.info("MOVING NOTE");
+    }
+
+    @Override
+    public void remove(String s, String s1, AuthenticationInfo authenticationInfo) throws IOException {
+        log.info("DELETING NOTE"); // TODO when is this used?
     }
 
     @Override
