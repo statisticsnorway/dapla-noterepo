@@ -1,7 +1,7 @@
 package no.ssb.dapla.notes.oicd;
 
+import org.pac4j.core.client.Client;
 import org.pac4j.core.context.WebContext;
-import org.pac4j.core.credentials.extractor.CredentialsExtractor;
 import org.pac4j.oidc.client.OidcClient;
 import org.pac4j.oidc.config.OidcConfiguration;
 import org.pac4j.oidc.credentials.OidcCredentials;
@@ -31,33 +31,29 @@ import java.util.concurrent.ConcurrentHashMap;
  * clients.clients = $mouthyOicdClient
  * </pre>
  */
-public class MouthyOicdClient<U extends OidcProfile, V extends OidcConfiguration> extends ForwardingOicdClient<U, V> {
+public class MouthyOicdClient extends ForwardingClient<OidcCredentials, OidcProfile> {
 
-    private OidcClient<U, V> delegate;
+    private Client<OidcCredentials, OidcProfile> delegate;
+
     private Map<String, OidcCredentials> credentialsMap = new ConcurrentHashMap<>();
 
-    public void setDelegate(OidcClient<U, V> delegate) {
+    OidcCredentials get(String userName) {
+        return credentialsMap.get(userName);
+    }
+
+    public void setDelegate(Client<OidcCredentials, OidcProfile> delegate) {
         this.delegate = delegate;
     }
 
     @Override
-    OidcClient<U, V> delegate() {
+    Client<OidcCredentials, OidcProfile> delegate() {
         return delegate;
     }
 
     @Override
-    public CredentialsExtractor<OidcCredentials> getCredentialsExtractor() {
-        return new CredentialsThief();
+    public OidcCredentials getCredentials(WebContext webContext) {
+        OidcCredentials credentials = super.getCredentials(webContext);
+        credentialsMap.put(credentials.getUserProfile().getId(), credentials);
+        return credentials;
     }
-
-    private class CredentialsThief implements CredentialsExtractor<OidcCredentials> {
-
-        @Override
-        public OidcCredentials extract(WebContext webContext) {
-            OidcCredentials credentials = getCredentialsExtractor().extract(webContext);
-            credentialsMap.put(credentials.getUserProfile().getUsername(), credentials);
-            return credentials;
-        }
-    }
-
 }
