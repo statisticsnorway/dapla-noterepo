@@ -2,7 +2,6 @@ package no.ssb.dapla.notes.oicd;
 
 import org.pac4j.oidc.credentials.OidcCredentials;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -20,14 +19,14 @@ import java.util.regex.Pattern;
 public class OicdServlet extends HttpServlet {
 
     private static final Pattern PATH_PATTERN = Pattern.compile("/(\\w+)/(access|refresh)");
-    private final MouthyOicdClient client;
+    private final MouthyKeycloakOidcClient client;
 
-    public OicdServlet(MouthyOicdClient client) {
+    public OicdServlet(MouthyKeycloakOidcClient client) {
         this.client = client;
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Matcher pathMatcher = PATH_PATTERN.matcher(req.getPathInfo());
         if (!pathMatcher.matches()) {
             resp.setStatus(HttpServletResponse.SC_NOT_FOUND);

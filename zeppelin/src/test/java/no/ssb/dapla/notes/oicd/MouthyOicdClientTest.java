@@ -5,42 +5,37 @@ import com.nimbusds.oauth2.sdk.token.RefreshToken;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.pac4j.core.client.Client;
+import org.pac4j.core.client.IndirectClient;
 import org.pac4j.core.context.WebContext;
-import org.pac4j.core.exception.HttpAction;
 import org.pac4j.core.profile.CommonProfile;
-import org.pac4j.core.redirect.RedirectAction;
 import org.pac4j.oidc.credentials.OidcCredentials;
 import org.pac4j.oidc.profile.OidcProfile;
 
 class MouthyOicdClientTest {
 
+    private Server server;
+
+    @AfterEach
+    void tearDown() throws Exception {
+        server.stop();
+        server.destroy();
+    }
+
     @BeforeEach
     void setUp() throws Exception {
-        Server server = new Server(9877);
+        server = new Server(9877);
         ServletContextHandler ctx = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
         ctx.setContextPath("/");
-        MouthyOicdClient oicdClient = new MouthyOicdClient();
-        oicdClient.setDelegate(new TestOicdClient());
-
         ctx.addServlet(
-                new ServletHolder(new OicdServlet(oicdClient)),
+                new ServletHolder(new OicdServlet(null)),
                 "/oicd/*"
         );
         server.setHandler(ctx);
-
-        oicdClient.getCredentials(null);
-
-        try {
-            server.start();
-            server.join();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        } finally {
-            server.destroy();
-        }
+        //oicdClient.getCredentials(null);
+        server.start();
     }
 
     @Test
@@ -48,7 +43,7 @@ class MouthyOicdClientTest {
 
     }
 
-    private static class TestOicdClient implements Client<OidcCredentials, OidcProfile> {
+    private static class TestOicdClient extends IndirectClient<OidcCredentials, OidcProfile> {
 
         @Override
         public String getName() {
@@ -56,12 +51,7 @@ class MouthyOicdClientTest {
         }
 
         @Override
-        public HttpAction redirect(WebContext webContext) {
-            return null;
-        }
-
-        @Override
-        public OidcCredentials getCredentials(WebContext webContext) {
+        protected OidcCredentials retrieveCredentials(WebContext context) {
             OidcCredentials credentials = new OidcCredentials();
             credentials.setAccessToken(new BearerAccessToken("accessToken"));
             credentials.setRefreshToken(new RefreshToken("refreshToken"));
@@ -72,13 +62,8 @@ class MouthyOicdClientTest {
         }
 
         @Override
-        public OidcProfile getUserProfile(OidcCredentials oidcCredentials, WebContext webContext) {
-            return null;
-        }
+        protected void clientInit() {
 
-        @Override
-        public RedirectAction getLogoutAction(WebContext webContext, OidcProfile oidcProfile, String s) {
-            return null;
         }
     }
 }
