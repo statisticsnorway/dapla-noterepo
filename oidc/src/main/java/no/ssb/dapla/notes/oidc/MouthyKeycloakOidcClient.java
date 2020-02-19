@@ -31,11 +31,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * clients.clients = $mouthyOicdClient
  * </pre>
  */
-public class MouthyKeycloakOidcClient extends KeycloakOidcClient {
+public final class MouthyKeycloakOidcClient extends KeycloakOidcClient {
 
     private Map<String, OidcCredentials> credentialsMap = new ConcurrentHashMap<>();
     private int port = 9877;
-    private String allowedClient = "*.";
+    private String allowedClient = ".*";
     private Server server;
 
     int getPort() {
@@ -50,27 +50,33 @@ public class MouthyKeycloakOidcClient extends KeycloakOidcClient {
         return credentialsMap.get(userName);
     }
 
+    void set(String userName, OidcCredentials credentials) {
+        credentialsMap.put(userName, credentials);
+    }
+
+    Server getServer() {
+        if (server == null) {
+            server = new Server(port);
+            ServletContextHandler ctx = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
+            ctx.setContextPath("/");
+            ctx.addServlet(
+                    new ServletHolder(new OidcServlet(this)),
+                    "/oidc/*"
+            );
+            server.setHandler(ctx);
+        }
+        return server;
+    }
+
     @Override
     protected void clientInit() {
         super.clientInit();
         setProfileCreator(new StealingProfileCreator(getProfileCreator()));
-
-        if (server == null) {
-            try {
-                server = new Server(port);
-                ServletContextHandler ctx = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
-                ctx.setContextPath("/");
-                ctx.addServlet(
-                        new ServletHolder(new OidcServlet(this)),
-                        "/oidc/*"
-                );
-                server.setHandler(ctx);
-                server.start();
-            } catch (Exception e) {
-                throw new RuntimeException("Could not start the server", e);
-            }
+        try {
+            getServer().start();
+        } catch (Exception e) {
+            throw new RuntimeException("Could not start the server", e);
         }
-
     }
 
     String getAllowedClient() {
@@ -81,7 +87,7 @@ public class MouthyKeycloakOidcClient extends KeycloakOidcClient {
         this.allowedClient = allowedClient;
     }
 
-    private class StealingProfileCreator implements ProfileCreator<OidcCredentials, KeycloakOidcProfile> {
+    private final class StealingProfileCreator implements ProfileCreator<OidcCredentials, KeycloakOidcProfile> {
 
         private final ProfileCreator<OidcCredentials, KeycloakOidcProfile> delegate;
 
