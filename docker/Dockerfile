@@ -7,12 +7,11 @@ COPY docker/shiro.ini /zeppelin/conf/shiro.ini
 COPY docker/zeppelin-site.xml /zeppelin/conf/zeppelin-site.xml
 
 USER root
+RUN mv /zeppelin/bin/zeppelin.sh /zeppelin/bin/zeppelin-orig.sh
 RUN gcc /zeppelin/mtail.c -o /bin/mtail
-COPY docker/zeppelin-mtail.sh /zeppelin/bin/zeppelin-mtail.sh
-RUN chmod +x /zeppelin/bin/zeppelin-mtail.sh
+COPY docker/zeppelin-mtail.sh /zeppelin/bin/zeppelin.sh
+RUN chmod +x /zeppelin/bin/zeppelin.sh
 USER zeppelin
-
-CMD ["bin/zeppelin-mtail.sh"]
 
 COPY zeppelin/target/dapla-notes-zeppelin-*-shaded.jar /zeppelin/lib
 COPY oidc/target/dapla-notes-oidc.jar /zeppelin/lib
