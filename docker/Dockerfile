@@ -8,6 +8,7 @@ RUN mv /zeppelin/bin/zeppelin.sh /zeppelin/bin/zeppelin-orig.sh
 RUN gcc /zeppelin/mtail.c -o /bin/mtail
 COPY docker/zeppelin-mtail.sh /zeppelin/bin/zeppelin.sh
 RUN chmod +x /zeppelin/bin/zeppelin.sh
+RUN apt-get install -y tcpdump && rm -rf /var/lib/apt/lists/*
 USER zeppelin
 
 COPY zeppelin/target/dapla-notes-zeppelin-*-shaded.jar /zeppelin/lib
