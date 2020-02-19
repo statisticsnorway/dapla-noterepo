@@ -1,4 +1,4 @@
-package no.ssb.dapla.notes.oicd;
+package no.ssb.dapla.notes.oidc;
 
 import org.pac4j.oidc.credentials.OidcCredentials;
 
@@ -16,12 +16,12 @@ import java.util.regex.Pattern;
  * /{id}/access
  * /{id}/token
  */
-public class OicdServlet extends HttpServlet {
+public class OidcServlet extends HttpServlet {
 
     private static final Pattern PATH_PATTERN = Pattern.compile("/(\\w+)/(access|refresh)");
     private final MouthyKeycloakOidcClient client;
 
-    public OicdServlet(MouthyKeycloakOidcClient client) {
+    public OidcServlet(MouthyKeycloakOidcClient client) {
         this.client = client;
     }
 

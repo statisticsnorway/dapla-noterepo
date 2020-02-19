@@ -1,4 +1,4 @@
-package no.ssb.dapla.notes.oicd;
+package no.ssb.dapla.notes.oidc;
 
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -7,7 +7,6 @@ import org.pac4j.core.context.WebContext;
 import org.pac4j.core.profile.creator.ProfileCreator;
 import org.pac4j.oidc.client.KeycloakOidcClient;
 import org.pac4j.oidc.credentials.OidcCredentials;
-import org.pac4j.oidc.profile.OidcProfile;
 import org.pac4j.oidc.profile.keycloak.KeycloakOidcProfile;
 
 import java.util.Map;
@@ -37,6 +36,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MouthyKeycloakOidcClient extends KeycloakOidcClient {
 
     private Map<String, OidcCredentials> credentialsMap = new ConcurrentHashMap<>();
+
+    public void setPort(int port) {
+        this.port = port;
+    }
+
     private int port;
     private Server server;
 
@@ -50,12 +54,12 @@ public class MouthyKeycloakOidcClient extends KeycloakOidcClient {
         setProfileCreator(new StealingProfileCreator(getProfileCreator()));
 
         if (server == null) {
-            server = new Server(9877);
+            server = new Server(port);
             ServletContextHandler ctx = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
             ctx.setContextPath("/");
             ctx.addServlet(
-                    new ServletHolder(new OicdServlet(this)),
-                    "/oicd/*"
+                    new ServletHolder(new OidcServlet(this)),
+                    "/oidc/*"
             );
             server.setHandler(ctx);
             try {
@@ -65,14 +69,6 @@ public class MouthyKeycloakOidcClient extends KeycloakOidcClient {
             }
         }
 
-    }
-
-    @Override
-    public OidcCredentials retrieveCredentials(WebContext webContext) {
-        OidcCredentials credentials = super.retrieveCredentials(webContext);
-        OidcProfile profile = super.getUserProfile(credentials, webContext);
-        credentialsMap.put(profile.asPrincipal().getName(), credentials);
-        return credentials;
     }
 
     private class StealingProfileCreator implements ProfileCreator<OidcCredentials, KeycloakOidcProfile> {

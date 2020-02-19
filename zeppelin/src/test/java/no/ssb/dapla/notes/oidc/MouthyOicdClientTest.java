@@ -1,4 +1,4 @@
-package no.ssb.dapla.notes.oicd;
+package no.ssb.dapla.notes.oidc;
 
 import com.nimbusds.oauth2.sdk.token.BearerAccessToken;
 import com.nimbusds.oauth2.sdk.token.RefreshToken;
@@ -30,7 +30,7 @@ class MouthyOicdClientTest {
         ServletContextHandler ctx = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
         ctx.setContextPath("/");
         ctx.addServlet(
-                new ServletHolder(new OicdServlet(null)),
+                new ServletHolder(new OidcServlet(null)),
                 "/oicd/*"
         );
         server.setHandler(ctx);
