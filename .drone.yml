@@ -81,22 +81,6 @@ steps:
     depends_on:
       - build
 
-  - name: dapla-notes-service
-    image: plugins/gcr
-    settings:
-      dockerfile: service/Dockerfile
-      repo: eu.gcr.io/prod-bip/dapla-notes-service
-      registry: eu.gcr.io
-      tags:
-        - latest
-        - ${DRONE_BRANCH//\//-}-${DRONE_COMMIT_SHA:0:8}
-      json_key:
-        from_secret: gcr_credentials
-    when:
-      event: push
-    depends_on:
-      - build
-
   - name: slack
     image: plugins/slack
     settings:
