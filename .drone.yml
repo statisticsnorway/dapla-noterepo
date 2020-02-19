@@ -68,7 +68,7 @@ steps:
   - name: dapla-notes-zeppelin
     image: plugins/gcr
     settings:
-      dockerfile: zeppelin/docker/Dockerfile
+      dockerfile: docker/Dockerfile
       repo: eu.gcr.io/prod-bip/dapla-notes-zeppelin
       registry: eu.gcr.io
       tags:

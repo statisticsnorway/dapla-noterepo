@@ -30,6 +30,7 @@
         <module>protobuf</module>
         <module>service</module>
         <module>zeppelin</module>
+        <module>oidc</module>
     </modules>
 
 </project>
