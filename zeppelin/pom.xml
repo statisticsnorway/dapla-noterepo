@@ -73,16 +73,7 @@
                 <version>3.11.1</version>
             </dependency>
 
-            <dependency>
-                <groupId>org.pac4j</groupId>
-                <artifactId>pac4j-oidc</artifactId>
-                <version>3.8.3</version>
-            </dependency>
-            <dependency>
-                <groupId>io.buji</groupId>
-                <artifactId>buji-pac4j</artifactId>
-                <version>4.1.1</version>
-            </dependency>
+
             <dependency>
                 <groupId>org.apache.zeppelin</groupId>
                 <artifactId>zeppelin-zengine</artifactId>
@@ -94,12 +85,7 @@
                 <artifactId>java-uuid-generator</artifactId>
                 <version>3.2.0</version>
             </dependency>
-            <dependency>
-                <groupId>org.assertj</groupId>
-                <artifactId>assertj-core</artifactId>
-                <version>3.11.1</version>
-                <scope>test</scope>
-            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
@@ -122,40 +108,6 @@
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty-shaded</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.pac4j</groupId>
-            <artifactId>pac4j-oidc</artifactId>
-            <version>3.8.3</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.buji</groupId>
-            <artifactId>buji-pac4j</artifactId>
-            <version>4.1.1</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.glassfish.jersey.inject</groupId>
-            <artifactId>jersey-hk2</artifactId>
-            <version>2.27</version>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.jersey.containers</groupId>
-            <artifactId>jersey-container-servlet-core</artifactId>
-            <version>2.27</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-server</artifactId>
-            <version>9.4.14.v20181114</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-servlet</artifactId>
-            <version>9.4.14.v20181114</version>
         </dependency>
 
         <dependency>
