@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
  */
 public class OidcServlet extends HttpServlet {
 
-    private static final Pattern PATH_PATTERN = Pattern.compile("/(\\w+)/(access|refresh)");
+    private static final Pattern PATH_PATTERN = Pattern.compile("/(.+)/(access|refresh)$");
     private final Pattern allowedClients;
     private final MouthyKeycloakOidcClient client;
 
