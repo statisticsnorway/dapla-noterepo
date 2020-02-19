@@ -90,7 +90,6 @@ steps:
     when:
       status: [ success, failure ]
     depends_on:
-      - dapla-notes-service
       - dapla-notes-zeppelin
 ---
 kind: secret
