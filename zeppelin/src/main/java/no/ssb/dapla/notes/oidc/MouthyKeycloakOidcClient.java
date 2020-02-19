@@ -20,13 +20,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * One should set it up in the shiro configuration file as follow:
  * <pre>
- * keycloakOidcClient = org.pac4j.oidc.client.KeycloakOidcClient
- * keycloakOidcClient.name = keycloakOidcClient
- * keycloakOidcClient.configuration = $oidcConfig
- * keycloakOidcClient.authorizationGenerator = $roleAdminAuthGenerator
- *
- * mouthyOicdClient = no.ssb.dapla.notes.oicd.MouthyOicdClient
- * mouthyOicdClient.delegate = $keycloakOidcClient
+ *     keycloakOidcClient = no.ssb.dapla.notes.oidc.MouthyKeycloakOidcClient
+ *     keycloakOidcClient.port = 9877
+ *     keycloakOidcClient.name = keycloakOidcClient
+ *     keycloakOidcClient.configuration = $oidcConfig
+ *     keycloakOidcClient.authorizationGenerator = $roleAdminAuthGenerator
  *
  * clients = org.pac4j.core.client.Clients
  * clients.callbackUrl = http://localhost:8080/api/callback
@@ -36,13 +34,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MouthyKeycloakOidcClient extends KeycloakOidcClient {
 
     private Map<String, OidcCredentials> credentialsMap = new ConcurrentHashMap<>();
+    private int port;
+    private Server server;
 
     public void setPort(int port) {
         this.port = port;
     }
-
-    private int port;
-    private Server server;
 
     OidcCredentials get(String userName) {
         return credentialsMap.get(userName);
@@ -54,15 +51,15 @@ public class MouthyKeycloakOidcClient extends KeycloakOidcClient {
         setProfileCreator(new StealingProfileCreator(getProfileCreator()));
 
         if (server == null) {
-            server = new Server(port);
-            ServletContextHandler ctx = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
-            ctx.setContextPath("/");
-            ctx.addServlet(
-                    new ServletHolder(new OidcServlet(this)),
-                    "/oidc/*"
-            );
-            server.setHandler(ctx);
             try {
+                server = new Server(port);
+                ServletContextHandler ctx = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
+                ctx.setContextPath("/");
+                ctx.addServlet(
+                        new ServletHolder(new OidcServlet(this)),
+                        "/oidc/*"
+                );
+                server.setHandler(ctx);
                 server.start();
             } catch (Exception e) {
                 throw new RuntimeException("Could not start the server", e);
