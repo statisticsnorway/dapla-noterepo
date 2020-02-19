@@ -5,7 +5,7 @@ This module extends the `org.pac4j.oidc.client.KeycloakOidcClient` class with a 
 
 Use the `MouthyKeycloakOidcClient` class as you would in the shiro configuration.
 
-The instances have two properties, `port` - the port on which the servlet will run- and `allowedClient` - a java compatible regexp the incoming address will be matched against.
+The instances have two properties, `port` - the port on which the servlet will run - and `allowedClient` - a java compatible regexp the incoming address will be matched against.
 
 ```
 [...]
@@ -27,7 +27,7 @@ The http endpoint exposed by the `MouthyKeycloakOidcClient` servlet are:
 | Endpoint              | Method        | Description  |
 | --------------------- |:-------------:| ------------:|
 | /oidc/{name}/access   | GET           | The access token for the user with {name} |
-| /oidc/{id}/refresh    | GET           | The refresh token for the user with {name} |
+| /oidc/{name}/refresh  | GET           | The refresh token for the user with {name} |
 
 
 
