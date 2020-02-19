@@ -34,8 +34,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MouthyKeycloakOidcClient extends KeycloakOidcClient {
 
     private Map<String, OidcCredentials> credentialsMap = new ConcurrentHashMap<>();
-    private int port;
+    private int port = 9877;
+    private String allowedClient = "*.";
     private Server server;
+
+    int getPort() {
+        return port;
+    }
 
     public void setPort(int port) {
         this.port = port;
@@ -66,6 +71,14 @@ public class MouthyKeycloakOidcClient extends KeycloakOidcClient {
             }
         }
 
+    }
+
+    String getAllowedClient() {
+        return allowedClient;
+    }
+
+    public void setAllowedClient(String allowedClient) {
+        this.allowedClient = allowedClient;
     }
 
     private class StealingProfileCreator implements ProfileCreator<OidcCredentials, KeycloakOidcProfile> {

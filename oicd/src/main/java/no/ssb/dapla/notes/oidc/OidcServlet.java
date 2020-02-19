@@ -19,15 +19,21 @@ import java.util.regex.Pattern;
 public class OidcServlet extends HttpServlet {
 
     private static final Pattern PATH_PATTERN = Pattern.compile("/(\\w+)/(access|refresh)");
+    private final Pattern allowedClients;
     private final MouthyKeycloakOidcClient client;
 
     public OidcServlet(MouthyKeycloakOidcClient client) {
         this.client = client;
+        allowedClients = Pattern.compile(client.getAllowedClient());
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Matcher pathMatcher = PATH_PATTERN.matcher(req.getPathInfo());
+        if (!allowedClients.matcher(req.getRemoteAddr()).matches()) {
+            resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         if (!pathMatcher.matches()) {
             resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
             return;
