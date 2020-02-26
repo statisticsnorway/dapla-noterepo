@@ -3,7 +3,7 @@ FROM alpine AS build-env
 ENV Z_VERSION="0.8.2"
 ENV Z_HOME="/zeppelin"
 
-RUN wget -O zeppelin-bin-netinst.tgz http://archive.apache.org/dist/zeppelin/zeppelin-${Z_VERSION}/zeppelin-${Z_VERSION}-bin-netinst.tgz && \
+RUN wget -O zeppelin-bin-netinst.tgz https://archive.apache.org/dist/zeppelin/zeppelin-${Z_VERSION}/zeppelin-${Z_VERSION}-bin-netinst.tgz && \
     tar -zxvf zeppelin-bin-netinst.tgz && \
     rm -rf zeppelin-bin-netinst.tgz && \
     mv /zeppelin-${Z_VERSION}-bin-netinst ${Z_HOME}/
