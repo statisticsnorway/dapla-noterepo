@@ -16,11 +16,18 @@ COPY --from=build-env /zeppelin /zeppelin
 # Required by the interpreter and launch script.
 RUN apk --no-cache add bash
 
-RUN mkdir /zeppelin/logs/
+RUN mkdir /zeppelin/logs/ \
+          /zeppelin/run
+
+# Fix logger duplicate
+RUN rm /zeppelin/lib/interpreter/slf4j-log4j12-1.7.10.jar
+
+# Output log to console
+COPY /docker/log4j.properties /zeppelin/conf/log4j.properties
 
 # Copy ssb dependencies
 COPY zeppelin/target/dapla-notes-zeppelin-*-shaded.jar /zeppelin/lib
-COPY oidc/target/dapla-notes-oidc.jar /zeppelin/lib
+COPY oidc/target/dapla-notes-oidc-*-shaded.jar /zeppelin/lib
 COPY oidc/spark-interpreter-0.8.2.jar /zeppelin/interpreter/spark/spark-interpreter-0.8.2.jar
 
 RUN chown -R 2001:2002 /zeppelin
