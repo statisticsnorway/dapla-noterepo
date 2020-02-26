@@ -22,7 +22,7 @@ steps:
   - name: build
     image: maven:3-jdk-11-slim
     commands:
-      - mvn verify -P ssb-bip -U -Dmaven.repo.local=/drone/src/.m2/repository --no-transfer-progress --batch-mode --global-settings settings.xml
+      - mvn verify -P ssb-bip -U -Djdk.tls.client.protocols="TLSv1.2" -Dmaven.repo.local=/drone/src/.m2/repository --no-transfer-progress --batch-mode --global-settings settings.xml
     depends_on:
       - authenticate
       - restore-cache
@@ -81,22 +81,6 @@ steps:
     depends_on:
       - build
 
-  - name: dapla-notes-service
-    image: plugins/gcr
-    settings:
-      dockerfile: service/Dockerfile
-      repo: eu.gcr.io/prod-bip/dapla-notes-service
-      registry: eu.gcr.io
-      tags:
-        - latest
-        - ${DRONE_BRANCH//\//-}-${DRONE_COMMIT_SHA:0:8}
-      json_key:
-        from_secret: gcr_credentials
-    when:
-      event: push
-    depends_on:
-      - build
-
   - name: slack
     image: plugins/slack
     settings:
@@ -106,7 +90,6 @@ steps:
     when:
       status: [ success, failure ]
     depends_on:
-      - dapla-notes-service
       - dapla-notes-zeppelin
 ---
 kind: secret
