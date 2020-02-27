@@ -30,6 +30,11 @@ COPY zeppelin/target/dapla-notes-zeppelin-*-shaded.jar /zeppelin/lib
 COPY oidc/target/dapla-notes-oidc-*-shaded.jar /zeppelin/lib
 COPY oidc/spark-interpreter-0.8.2.jar /zeppelin/interpreter/spark/spark-interpreter-0.8.2.jar
 
+# Required so that we persist the note permissions as well
+# TODO: Find a better solution, changing the path/volume/config could break this
+RUN ln -sf /zeppelin/notebook/notebook-authorization.json \
+           /zeppelin/conf/notebook-authorization.json
+
 RUN chown -R 2100:2100 /zeppelin
 USER 2100:2100
 
