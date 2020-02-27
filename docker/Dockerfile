@@ -30,8 +30,8 @@ COPY zeppelin/target/dapla-notes-zeppelin-*-shaded.jar /zeppelin/lib
 COPY oidc/target/dapla-notes-oidc-*-shaded.jar /zeppelin/lib
 COPY oidc/spark-interpreter-0.8.2.jar /zeppelin/interpreter/spark/spark-interpreter-0.8.2.jar
 
-RUN chown -R 2001:2002 /zeppelin
-USER 2001:2002
+RUN chown -R 2100:2100 /zeppelin
+USER 2100:2100
 
 WORKDIR /zeppelin
 
