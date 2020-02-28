@@ -37,7 +37,7 @@ RUN ln -sf /zeppelin/notebook/notebook-authorization.json \
 
 # Intall spark.
 ENV SPARK_HOME "/usr/lib/spark"
-RUN wget https://downloads.apache.org/spark/spark-2.4.5/spark-2.4.5-bin-without-hadoop-scala-2.12.tgz && \
+RUN wget https://apache.uib.no/spark/spark-2.4.5/spark-2.4.5-bin-without-hadoop-scala-2.12.tgz && \
     tar -zxpf spark-2.4.5-bin-without-hadoop-scala-2.12.tgz -C /tmp && \
     mv /tmp/spark-2.4.5-bin-without-hadoop-scala-2.12 ${SPARK_HOME} && \
     rm -rf spark-2.4.5-bin-without-hadoop-scala-2.12.tgz
