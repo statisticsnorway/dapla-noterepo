@@ -32,6 +32,13 @@ COPY oidc/spark-interpreter-0.8.2.jar /zeppelin/interpreter/spark/spark-interpre
 RUN ln -sf /zeppelin/notebook/notebook-authorization.json \
            /zeppelin/conf/notebook-authorization.json
 
+# Install hadoop
+ENV HADOOP_HOME="/opt/hadoop-2.7.7"
+RUN wget https://archive.apache.org/dist/hadoop/common/hadoop-2.7.7/hadoop-2.7.7.tar.gz && \
+    tar -zxpf hadoop-2.7.7.tar.gz -C /tmp && \
+    mv /tmp/hadoop-2.7.7 ${HADOOP_HOME} && \
+    rm -rf hadoop-2.7.7.tar.gz
+
 # Intall spark.
 ENV SPARK_HOME "/usr/lib/spark"
 RUN wget https://apache.uib.no/spark/spark-2.4.5/spark-2.4.5-bin-without-hadoop-scala-2.12.tgz && \
