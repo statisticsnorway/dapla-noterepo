@@ -19,9 +19,6 @@ RUN apk --no-cache add bash
 RUN mkdir /zeppelin/logs/ \
           /zeppelin/run
 
-# Fix logger duplicate
-RUN rm /zeppelin/lib/interpreter/slf4j-log4j12-1.7.10.jar
-
 # Output log to console
 COPY /docker/log4j.properties /zeppelin/conf/log4j.properties
 
