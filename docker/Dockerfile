@@ -33,7 +33,7 @@ RUN ln -sf /zeppelin/notebook/notebook-authorization.json \
            /zeppelin/conf/notebook-authorization.json
 
 # Install hadoop
-ENV HADOOP_HOME="/opt/hadoop-2.7.7"
+ENV HADOOP_HOME="/opt/hadoop"
 RUN wget https://archive.apache.org/dist/hadoop/common/hadoop-2.7.7/hadoop-2.7.7.tar.gz && \
     tar -zxpf hadoop-2.7.7.tar.gz -C /tmp && \
     mv /tmp/hadoop-2.7.7 ${HADOOP_HOME} && \
