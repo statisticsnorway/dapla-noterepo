@@ -38,6 +38,7 @@ RUN wget https://archive.apache.org/dist/hadoop/common/hadoop-2.7.7/hadoop-2.7.7
     tar -zxpf hadoop-2.7.7.tar.gz -C /tmp && \
     mv /tmp/hadoop-2.7.7 ${HADOOP_HOME} && \
     rm -rf hadoop-2.7.7.tar.gz
+ENV HADOOP_CONF_DIR="${HADOOP_HOME}/etc/hadoop"
 
 # Intall spark.
 ENV SPARK_HOME "/usr/lib/spark"
