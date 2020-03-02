@@ -1,17 +1,15 @@
-FROM alpine AS build-env
+FROM openjdk:8-alpine
 
 ENV Z_VERSION="0.8.2"
 ENV Z_HOME="/zeppelin"
+ENV ZEPPELIN_GROUP_ID=2100
+ENV ZEPPELIN_USER_ID=2100
 
+# Install zeppelin
 RUN wget -O zeppelin-bin-netinst.tgz https://archive.apache.org/dist/zeppelin/zeppelin-${Z_VERSION}/zeppelin-${Z_VERSION}-bin-netinst.tgz && \
-    tar -zxvf zeppelin-bin-netinst.tgz && \
+    tar -zxf zeppelin-bin-netinst.tgz && \
     rm -rf zeppelin-bin-netinst.tgz && \
     mv /zeppelin-${Z_VERSION}-bin-netinst ${Z_HOME}/
-
-FROM openjdk:8-alpine
-
-# Copy zeppelin
-COPY --from=build-env /zeppelin /zeppelin
 
 # Required by the interpreter and launch script.
 RUN apk --no-cache add bash
@@ -33,22 +31,27 @@ RUN ln -sf /zeppelin/notebook/notebook-authorization.json \
            /zeppelin/conf/notebook-authorization.json
 
 # Install hadoop
-ENV HADOOP_HOME="/opt/hadoop"
-RUN wget https://archive.apache.org/dist/hadoop/common/hadoop-2.7.7/hadoop-2.7.7.tar.gz && \
-    tar -zxpf hadoop-2.7.7.tar.gz -C /tmp && \
-    mv /tmp/hadoop-2.7.7 ${HADOOP_HOME} && \
-    rm -rf hadoop-2.7.7.tar.gz
-ENV HADOOP_CONF_DIR="${HADOOP_HOME}/etc/hadoop"
+#ENV HADOOP_HOME="/opt/hadoop"
+#RUN wget https://archive.apache.org/dist/hadoop/common/hadoop-2.7.7/hadoop-2.7.7.tar.gz && \
+#    tar -zxpf hadoop-2.7.7.tar.gz -C /tmp && \
+#    mv /tmp/hadoop-2.7.7 ${HADOOP_HOME} && \
+#    rm -rf hadoop-2.7.7.tar.gz
+#ENV HADOOP_CONF_DIR="${HADOOP_HOME}/etc/hadoop"
 
 # Intall spark.
 ENV SPARK_HOME "/usr/lib/spark"
-RUN wget https://apache.uib.no/spark/spark-2.4.5/spark-2.4.5-bin-without-hadoop-scala-2.12.tgz && \
-    tar -zxpf spark-2.4.5-bin-without-hadoop-scala-2.12.tgz -C /tmp && \
-    mv /tmp/spark-2.4.5-bin-without-hadoop-scala-2.12 ${SPARK_HOME} && \
-    rm -rf spark-2.4.5-bin-without-hadoop-scala-2.12.tgz
+RUN wget https://apache.uib.no/spark/spark-2.4.5/spark-2.4.5-bin-hadoop2.7.tgz && \
+    tar -zxpf spark-2.4.5-bin-hadoop2.7.tgz -C /tmp && \
+    mv /tmp/spark-2.4.5-bin-hadoop2.7 ${SPARK_HOME} && \
+    rm -rf /tmp/spark-2.4.5-bin-hadoop2.7
+ENV PATH="$PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin"
 
-RUN chown -R 2100:2100 /zeppelin
-USER 2100:2100
+# Zeppelin needs a real user/group
+RUN addgroup -g $ZEPPELIN_GROUP_ID -S zeppelin && \
+    adduser  -u $ZEPPELIN_USER_ID --shell /bin/bash --home ${Z_HOME} --disabled-password -S zeppelin -G zeppelin && \
+    chown -R $ZEPPELIN_USER_ID:$ZEPPELIN_GROUP_ID /zeppelin
+
+USER zeppelin:zeppelin
 
 WORKDIR /zeppelin
 
