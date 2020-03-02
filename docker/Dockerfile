@@ -38,13 +38,13 @@ RUN wget https://apache.uib.no/spark/spark-2.4.5/spark-2.4.5-bin-hadoop2.7.tgz &
     rm -rf /tmp/spark-2.4.5-bin-hadoop2.7
 ENV PATH="$PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin"
 
+# Add sensible interpreter config defaults
+COPY docker/interpreter.json /zeppelin/conf/
+
 # Zeppelin needs a real user/group
 RUN addgroup -g $ZEPPELIN_GROUP_ID -S zeppelin && \
     adduser  -u $ZEPPELIN_USER_ID --shell /bin/bash --home ${Z_HOME} --disabled-password -S zeppelin -G zeppelin && \
     chown -R $ZEPPELIN_USER_ID:$ZEPPELIN_GROUP_ID /zeppelin
-
-# Add sensible interpreter config defaults
-COPY docker/interpreter.json /zeppelin/conf/
 
 USER zeppelin:zeppelin
 
