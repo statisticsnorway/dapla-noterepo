@@ -20,6 +20,9 @@ RUN mkdir /zeppelin/logs/ \
 # Output log to console
 COPY docker/log4j.properties /zeppelin/conf/log4j.properties
 
+# Output log to console
+COPY docker/interpreter.sh /zeppelin/bin/interpreter.sh
+
 # Copy ssb dependencies
 COPY zeppelin/target/dapla-notes-zeppelin-*-shaded.jar /zeppelin/lib
 COPY oidc/target/dapla-notes-oidc-*-shaded.jar /zeppelin/lib
