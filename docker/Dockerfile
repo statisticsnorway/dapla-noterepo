@@ -17,17 +17,6 @@ RUN apk --no-cache add bash
 RUN mkdir /zeppelin/logs/ \
           /zeppelin/run
 
-# Output log to console
-COPY docker/log4j.properties /zeppelin/conf/log4j.properties
-
-# Output log to console
-COPY docker/interpreter.sh /zeppelin/bin/interpreter.sh
-
-# Copy ssb dependencies
-COPY zeppelin/target/dapla-notes-zeppelin-*-shaded.jar /zeppelin/lib
-COPY oidc/target/dapla-notes-oidc-*-shaded.jar /zeppelin/lib
-COPY oidc/spark-interpreter-0.8.2.jar /zeppelin/interpreter/spark/spark-interpreter-0.8.2.jar
-
 # Required so that we persist the note permissions as well
 # TODO: Find a better solution, changing the path/volume/config could break this
 RUN ln -sf /zeppelin/notebook/notebook-authorization.json \
@@ -43,6 +32,17 @@ ENV PATH="$PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin"
 
 # Add sensible interpreter config defaults
 COPY docker/interpreter.json /zeppelin/conf/
+
+# Output log to console
+COPY docker/log4j.properties /zeppelin/conf/log4j.properties
+
+# Replace interpreter script
+COPY docker/interpreter.sh /zeppelin/bin/interpreter.sh
+
+# Copy ssb dependencies
+COPY zeppelin/target/dapla-notes-zeppelin-*-shaded.jar /zeppelin/lib
+COPY oidc/target/dapla-notes-oidc-*-shaded.jar /zeppelin/lib
+
 
 # Zeppelin needs a real user/group
 RUN addgroup -g $ZEPPELIN_GROUP_ID -S zeppelin && \
