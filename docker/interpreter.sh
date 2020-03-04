@@ -194,7 +194,7 @@ addJarInDirForIntp "${LOCAL_INTERPRETER_REPO}"
 ​
 if [[ -n "${SPARK_SUBMIT}" ]]; then
 ​
-  if [[ -n "$ZEPPELIN_IMPERSONATE_USER" ]] && [[ "$ZEPPELIN_USE_TOKENS" = "true" ]]; then
+  if [[ -n "$ZEPPELIN_IMPERSONATE_USER" ]] && [[ "$ZEPPELIN_SSB_USE_TOKENS" = "true" ]]; then
     echo "Fetching tokens for $ZEPPELIN_IMPERSONATE_USER"
 ​
     SSB_REFRESH_TOKEN=$(wget -q "http://localhost:9877/oidc/${ZEPPELIN_IMPERSONATE_USER}/refresh" -O -)
