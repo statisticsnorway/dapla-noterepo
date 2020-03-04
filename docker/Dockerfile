@@ -38,10 +38,14 @@ COPY docker/log4j.properties /zeppelin/conf/log4j.properties
 
 # Replace interpreter script
 COPY docker/interpreter.sh /zeppelin/bin/interpreter.sh
+RUN chmod u+x /zeppelin/bin/interpreter.sh
 
 # Copy ssb dependencies
 COPY zeppelin/target/dapla-notes-zeppelin-*-shaded.jar /zeppelin/lib
 COPY oidc/target/dapla-notes-oidc-*-shaded.jar /zeppelin/lib
+
+RUN wget -P /tmp https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop2-latest.jar && \
+    mv /tmp/gcs-connector-hadoop2-latest.jar /zeppelin/lib/gcs-connector-hadoop.jar
 
 
 # Zeppelin needs a real user/group
