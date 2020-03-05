@@ -65,11 +65,11 @@ steps:
     depends_on:
       - sonarqube
 
-  - name: dapla-notes-zeppelin
+  - name: dapla-zeppelin-base
     image: plugins/gcr
     settings:
       dockerfile: docker/Dockerfile
-      repo: eu.gcr.io/prod-bip/dapla-notes-zeppelin
+      repo: eu.gcr.io/prod-bip/dapla-zeppelin-base
       registry: eu.gcr.io
       tags:
         - latest
@@ -90,7 +90,7 @@ steps:
     when:
       status: [ success, failure ]
     depends_on:
-      - dapla-notes-zeppelin
+      - dapla-zeppelin-base
 ---
 kind: secret
 name: maven_servers

@@ -44,9 +44,6 @@ RUN chmod u+x /zeppelin/bin/interpreter.sh
 COPY zeppelin/target/dapla-notes-zeppelin-*-shaded.jar /zeppelin/lib
 COPY oidc/target/dapla-notes-oidc-*-shaded.jar /zeppelin/lib
 
-RUN wget -P /tmp https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop2-latest.jar && \
-    mv /tmp/gcs-connector-hadoop2-latest.jar /zeppelin/lib/gcs-connector-hadoop.jar
-
 
 # Zeppelin needs a real user/group
 RUN addgroup -g $ZEPPELIN_GROUP_ID -S zeppelin && \
