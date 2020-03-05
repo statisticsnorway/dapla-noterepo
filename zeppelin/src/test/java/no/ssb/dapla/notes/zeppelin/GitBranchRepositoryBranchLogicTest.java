@@ -235,7 +235,7 @@ class GitBranchRepositoryBranchLogicTest {
     /**
      * Assert that when a note is deleted, the note is removed from its original location
      * and placed in the "~Trash" folder and that both the Trash folder and the note inside
-     * is untracked
+     * are not tracked.
      */
     @Test
     public void testDeleteNote() throws IOException, GitAPIException {
