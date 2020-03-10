@@ -27,7 +27,8 @@ ENV SPARK_HOME "/usr/lib/spark"
 RUN wget https://apache.uib.no/spark/spark-2.4.5/spark-2.4.5-bin-hadoop2.7.tgz && \
     tar -zxpf spark-2.4.5-bin-hadoop2.7.tgz -C /tmp && \
     mv /tmp/spark-2.4.5-bin-hadoop2.7 ${SPARK_HOME} && \
-    rm -rf /tmp/spark-2.4.5-bin-hadoop2.7
+    rm -rf /tmp/spark-2.4.5-bin-hadoop2.7  && \
+    rm spark-2.4.5-bin-hadoop2.7.tgz
 ENV PATH="$PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin"
 
 # Add sensible interpreter config defaults
