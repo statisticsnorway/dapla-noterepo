@@ -203,6 +203,8 @@ if [[ -n "${SPARK_SUBMIT}" ]]; then
     ZEPPELIN_SPARK_CONF=$(echo $ZEPPELIN_SPARK_CONF | sed 's/[[:space:]]--proxy-user[[:space:]].*//')
 ​
     ZEPPELIN_SPARK_CONF+=" --conf spark.ssb.access=\"${SSB_ACCESS_TOKEN}\" --conf spark.ssb.refresh=\"${SSB_REFRESH_TOKEN}\" "
+
+    export HADOOP_USER_NAME="${ZEPPELIN_IMPERSONATE_USER}"
   fi
 ​
     INTERPRETER_RUN_COMMAND+=' '` echo ${SPARK_SUBMIT} --class ${ZEPPELIN_SERVER} --driver-class-path \"${ZEPPELIN_INTP_CLASSPATH_OVERRIDES}:${ZEPPELIN_INTP_CLASSPATH}\" --driver-java-options \"${JAVA_INTP_OPTS}\" ${SPARK_SUBMIT_OPTIONS} ${ZEPPELIN_SPARK_CONF} ${SPARK_APP_JAR} ${CALLBACK_HOST} ${PORT} ${INTP_PORT}`
